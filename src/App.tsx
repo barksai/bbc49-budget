@@ -15,9 +15,15 @@ import { StorageService, StorageStatus } from './services/storage';
 import { ExportService } from './services/exportService';
 import { AppData, FiscalYear, Transaction, BankAccount, BudgetItem, BankTransfer } from './types/budget';
 import { INITIAL_APP_DATA } from './data/defaultData';
+import { LoginPage } from './components/auth/LoginPage';
+import { AdminUsersTab } from './components/tabs/AdminUsersTab';
+import { authService } from './services/auth';
+import { User } from './types/auth';
 
 export const App: React.FC = () => {
   const [data, setData] = useState<AppData>(INITIAL_APP_DATA);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => authService.getCurrentUser());
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
   const [currentYearId, setCurrentYearId] = useState<string>('fy-2026-2027');
   const [storageStatus, setStorageStatus] = useState<StorageStatus>({
@@ -32,6 +38,46 @@ export const App: React.FC = () => {
   const [isEditGlobalBudgetModalOpen, setIsEditGlobalBudgetModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Check auth session
+  useEffect(() => {
+    let isMounted = true;
+    async function checkAuth() {
+      try {
+        const user = await authService.verifySession();
+        if (isMounted) {
+          setCurrentUser(user);
+        }
+      } catch (err) {
+        console.warn('Session verification failed:', err);
+        if (isMounted) {
+          setCurrentUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsAuthChecking(false);
+        }
+      }
+    }
+    checkAuth();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Logout handler
+  const handleLogout = useCallback(() => {
+    authService.logout();
+    setCurrentUser(null);
+  }, []);
+
+  const isReadOnly = currentUser?.role === 'viewer' || storageStatus.readOnlyMode;
+
+  useEffect(() => {
+    if (activeTab === 'admin_users' && currentUser?.role !== 'admin') {
+      setActiveTab('dashboard');
+    }
+  }, [activeTab, currentUser]);
 
   // Load Initial Data
   useEffect(() => {
@@ -79,6 +125,10 @@ export const App: React.FC = () => {
 
   // Sauvegarder les données
   const handleSaveData = useCallback(async () => {
+    if (currentUser?.role === 'viewer') {
+      alert('Action restreinte : votre compte est en mode Lecture Seule.');
+      return;
+    }
     setIsSaving(true);
     try {
       const res = await StorageService.saveData(data);
@@ -94,7 +144,7 @@ export const App: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [data]);
+  }, [data, currentUser]);
 
   // Export PDF
   const handleExportPdf = () => {
@@ -113,6 +163,10 @@ export const App: React.FC = () => {
 
   // Import JSON
   const handleImportJson = async (file: File) => {
+    if (currentUser?.role === 'viewer') {
+      alert('Action restreinte : votre compte est en mode Lecture Seule.');
+      return;
+    }
     try {
       const imported = await StorageService.importFromJsonFile(file);
       setData(imported);
@@ -141,6 +195,7 @@ export const App: React.FC = () => {
 
   // Transactions update handler with auto-save
   const handleUpdateTransactions = (transactions: Transaction[]) => {
+    if (currentUser?.role === 'viewer') return;
     const updatedData = { ...data, transactions };
     setData(updatedData);
     StorageService.saveData(updatedData);
@@ -148,6 +203,7 @@ export const App: React.FC = () => {
 
   // Bank accounts update handler
   const handleUpdateBankAccounts = (bankAccounts: BankAccount[]) => {
+    if (currentUser?.role === 'viewer') return;
     const updatedData = { ...data, bankAccounts };
     setData(updatedData);
     StorageService.saveData(updatedData);
@@ -155,6 +211,7 @@ export const App: React.FC = () => {
 
   // Transfers update handler
   const handleUpdateTransfers = (transfers: BankTransfer[]) => {
+    if (currentUser?.role === 'viewer') return;
     const updatedData = { ...data, transfers };
     setData(updatedData);
     StorageService.saveData(updatedData);
@@ -162,6 +219,7 @@ export const App: React.FC = () => {
 
   // Budget items update handler
   const handleUpdateBudgetItems = (budgetItems: BudgetItem[]) => {
+    if (currentUser?.role === 'viewer') return;
     const updatedData = { ...data, budgetItems };
     setData(updatedData);
     StorageService.saveData(updatedData);
@@ -172,6 +230,7 @@ export const App: React.FC = () => {
     newTransactions: Transaction[],
     updatedAccount?: { accountId: string; newStatementBalance: number; statementDate: string }
   ) => {
+    if (currentUser?.role === 'viewer') return;
     let updatedAccounts = data.bankAccounts;
     if (updatedAccount) {
       updatedAccounts = data.bankAccounts.map((acc) => {
@@ -198,12 +257,14 @@ export const App: React.FC = () => {
 
   // Save full global budget
   const handleSaveGlobalBudget = (newBudgetItems: BudgetItem[]) => {
+    if (currentUser?.role === 'viewer') return;
     handleUpdateBudgetItems(newBudgetItems);
     setIsEditGlobalBudgetModalOpen(false);
   };
 
   // Scenarios update handler
   const handleUpdateScenarios = (scenarios: any) => {
+    if (currentUser?.role === 'viewer') return;
     const updatedYears = data.fiscalYears.map((fy) =>
       fy.id === currentYearId ? { ...fy, scenarios } : fy
     );
@@ -214,6 +275,7 @@ export const App: React.FC = () => {
 
   // Treasurer notes update handler
   const handleUpdateFiscalYearNotes = (notes: string) => {
+    if (currentUser?.role === 'viewer') return;
     const updatedYears = data.fiscalYears.map((fy) =>
       fy.id === currentYearId ? { ...fy, treasurerNotes: notes } : fy
     );
@@ -224,6 +286,7 @@ export const App: React.FC = () => {
 
   // New Fiscal Year handler
   const handleCreateNewFiscalYear = (newYear: FiscalYear, copyFromId?: string) => {
+    if (currentUser?.role === 'viewer') return;
     let newBudgetItems = [...data.budgetItems];
 
     if (copyFromId) {
@@ -247,16 +310,20 @@ export const App: React.FC = () => {
     StorageService.saveData(updatedData);
   };
 
-  if (isLoading) {
+  if (isAuthChecking || isLoading) {
     return (
       <div className="h-screen w-screen bg-[#0d0e12] flex items-center justify-center text-white">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 rounded-full border-4 border-[#C8102E] border-t-transparent animate-spin mx-auto" />
           <h2 className="text-lg font-bold">Chargement de Bouchemaine Basket Budget...</h2>
-          <p className="text-xs text-slate-400">Initialisation de la base locale autonome</p>
+          <p className="text-xs text-slate-400">Initialisation de la session sécurisée</p>
         </div>
       </div>
     );
+  }
+
+  if (!currentUser) {
+    return <LoginPage onLoginSuccess={(user) => setCurrentUser(user)} />;
   }
 
   return (
@@ -276,7 +343,12 @@ export const App: React.FC = () => {
           setActiveTab(tab);
           setIsMobileMenuOpen(false);
         }}
-        storageStatus={storageStatus}
+        storageStatus={{
+          ...storageStatus,
+          readOnlyMode: isReadOnly,
+        }}
+        currentUser={currentUser}
+        onLogout={handleLogout}
         onOpenDataFolder={handleOpenDataFolder}
         onForceUnlock={handleForceUnlock}
         isOpenMobile={isMobileMenuOpen}
@@ -304,66 +376,83 @@ export const App: React.FC = () => {
         />
 
         {/* Dynamic Central Area */}
-        <main className="flex-1 overflow-hidden bg-[#0d0f14]">
-          {activeTab === 'dashboard' && (
-            <DashboardTab
-              data={data}
-              currentYear={currentFiscalYear}
-              onNavigateToTab={(tab) => setActiveTab(tab)}
-            />
+        <main className="flex-1 overflow-hidden bg-[#0d0f14] flex flex-col">
+          {currentUser.role === 'viewer' && (
+            <div className="bg-amber-950/70 border-b border-amber-800/60 px-4 py-2 flex items-center justify-between text-xs text-amber-200 shrink-0">
+              <div className="flex items-center space-x-2">
+                <span className="font-bold bg-amber-500/20 px-2 py-0.5 rounded text-amber-300">
+                  Mode Consultation
+                </span>
+                <span>Votre compte a les droits « Lecture seule ». L'enregistrement et les modifications sont désactivés.</span>
+              </div>
+            </div>
           )}
 
-          {activeTab === 'transactions' && (
-            <TransactionsTab
-              data={data}
-              currentYear={currentFiscalYear}
-              onUpdateTransactions={handleUpdateTransactions}
-              onSaveData={handleSaveData}
-            />
-          )}
+          <div className="flex-1 overflow-hidden">
+            {activeTab === 'dashboard' && (
+              <DashboardTab
+                data={data}
+                currentYear={currentFiscalYear}
+                onNavigateToTab={(tab) => setActiveTab(tab)}
+              />
+            )}
 
-          {activeTab === 'monthly' && (
-            <MonthlyTab data={data} currentYear={currentFiscalYear} />
-          )}
+            {activeTab === 'transactions' && (
+              <TransactionsTab
+                data={data}
+                currentYear={currentFiscalYear}
+                onUpdateTransactions={handleUpdateTransactions}
+                onSaveData={handleSaveData}
+              />
+            )}
 
-          {activeTab === 'accounts' && (
-            <BankAccountsTab
-              data={data}
-              currentYear={currentFiscalYear}
-              onUpdateBankAccounts={handleUpdateBankAccounts}
-              onUpdateTransfers={handleUpdateTransfers}
-              onUpdateTransactions={handleUpdateTransactions}
-              onOpenBankStatementModal={() => setIsBankStatementModalOpen(true)}
-            />
-          )}
+            {activeTab === 'monthly' && (
+              <MonthlyTab data={data} currentYear={currentFiscalYear} />
+            )}
 
-          {activeTab === 'general_assembly' && (
-            <GeneralAssemblyTab
-              data={data}
-              currentYear={currentFiscalYear}
-              onUpdateFiscalYearNotes={handleUpdateFiscalYearNotes}
-              onExportPdf={handleExportPdf}
-            />
-          )}
+            {activeTab === 'accounts' && (
+              <BankAccountsTab
+                data={data}
+                currentYear={currentFiscalYear}
+                onUpdateBankAccounts={handleUpdateBankAccounts}
+                onUpdateTransfers={handleUpdateTransfers}
+                onUpdateTransactions={handleUpdateTransactions}
+                onOpenBankStatementModal={() => setIsBankStatementModalOpen(true)}
+              />
+            )}
 
-          {activeTab === 'income_statement' && (
-            <IncomeStatementTab
-              data={data}
-              currentYear={currentFiscalYear}
-              onUpdateBudgetItems={handleUpdateBudgetItems}
-              onOpenEditGlobalBudgetModal={() => setIsEditGlobalBudgetModalOpen(true)}
-            />
-          )}
+            {activeTab === 'general_assembly' && (
+              <GeneralAssemblyTab
+                data={data}
+                currentYear={currentFiscalYear}
+                onUpdateFiscalYearNotes={handleUpdateFiscalYearNotes}
+                onExportPdf={handleExportPdf}
+              />
+            )}
 
-          {activeTab === 'forecast' && (
-            <ForecastTab
-              data={data}
-              currentYear={currentFiscalYear}
-              onUpdateBudgetItems={handleUpdateBudgetItems}
-              onUpdateScenarios={handleUpdateScenarios}
-              onOpenEditGlobalBudgetModal={() => setIsEditGlobalBudgetModalOpen(true)}
-            />
-          )}
+            {activeTab === 'income_statement' && (
+              <IncomeStatementTab
+                data={data}
+                currentYear={currentFiscalYear}
+                onUpdateBudgetItems={handleUpdateBudgetItems}
+                onOpenEditGlobalBudgetModal={() => setIsEditGlobalBudgetModalOpen(true)}
+              />
+            )}
+
+            {activeTab === 'forecast' && (
+              <ForecastTab
+                data={data}
+                currentYear={currentFiscalYear}
+                onUpdateBudgetItems={handleUpdateBudgetItems}
+                onUpdateScenarios={handleUpdateScenarios}
+                onOpenEditGlobalBudgetModal={() => setIsEditGlobalBudgetModalOpen(true)}
+              />
+            )}
+
+            {activeTab === 'admin_users' && currentUser.role === 'admin' && (
+              <AdminUsersTab currentUser={currentUser} />
+            )}
+          </div>
         </main>
       </div>
 

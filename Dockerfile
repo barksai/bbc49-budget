@@ -55,7 +55,7 @@ EXPOSE 3000
 
 # Vérification de santé (Healthcheck Docker)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/status || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/status || exit 1
 
 # Lancement de l'application
 CMD ["node", "server/index.js"]

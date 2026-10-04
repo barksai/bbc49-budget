@@ -92,6 +92,10 @@ seedIfMissing();
 
 // API Endpoints
 // 1. Status & Healthcheck
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.get('/api/status', (req, res) => {
   const exists = fs.existsSync(DB_FILE);
   let stats = null;

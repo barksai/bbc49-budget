@@ -19,7 +19,7 @@ services:
       # Persistance de la base de données et des sauvegardes sur l'hôte Debian
       - ./data:/app/data
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/status"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/status"]
       interval: 30s
       timeout: 5s
       retries: 3

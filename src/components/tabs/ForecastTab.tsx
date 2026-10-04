@@ -152,7 +152,7 @@ export const ForecastTab: React.FC<ForecastTabProps> = ({
   const netPess = totalRecPess - totalDepPess;
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto h-full">
       {/* Title & Scenarios Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-[#181a22] to-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md">
         <div>

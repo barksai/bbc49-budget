@@ -153,7 +153,7 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
   };
 
   return (
-    <div className={`p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0d0e12] p-4 sm:p-8' : 'max-h-[calc(100vh-4rem)]'}`}>
+    <div className={`p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0d0e12] p-4 sm:p-8' : 'h-full'}`}>
       {/* Title & Projection controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-red-950/60 via-slate-900 to-slate-900 p-4 sm:p-5 rounded-2xl border border-red-900/40 shadow-lg">
         <div className="flex items-center space-x-3.5">

@@ -30,6 +30,7 @@ export const App: React.FC = () => {
   const [isNewYearModalOpen, setIsNewYearModalOpen] = useState(false);
   const [isBankStatementModalOpen, setIsBankStatementModalOpen] = useState(false);
   const [isEditGlobalBudgetModalOpen, setIsEditGlobalBudgetModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load Initial Data
@@ -259,18 +260,31 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#0e1015] text-slate-100 font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#0e1015] text-slate-100 font-sans relative">
+      {/* Mobile Backdrop Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden transition-opacity"
+        />
+      )}
+
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
-        onSelectTab={(tab) => setActiveTab(tab)}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setIsMobileMenuOpen(false);
+        }}
         storageStatus={storageStatus}
         onOpenDataFolder={handleOpenDataFolder}
         onForceUnlock={handleForceUnlock}
+        isOpenMobile={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main Area */}
-      <div className="flex flex-col flex-1 h-screen overflow-hidden">
+      <div className="flex flex-col flex-1 h-screen overflow-hidden min-w-0">
         {/* Header Bar */}
         <Header
           fiscalYears={data.fiscalYears}
@@ -286,6 +300,7 @@ export const App: React.FC = () => {
           lastSavedAt={storageStatus.lastSavedAt}
           isSaving={isSaving}
           saveSuccess={saveSuccess}
+          onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
 
         {/* Dynamic Central Area */}

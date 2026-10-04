@@ -199,15 +199,15 @@ export const EditGlobalBudgetModal: React.FC<EditGlobalBudgetModalProps> = ({
         </div>
 
         {/* Filter and Search */}
-        <div className="p-3 bg-[#13151b] border-b border-slate-800 flex items-center justify-between gap-3 shrink-0">
-          <div className="flex gap-1.5">
+        <div className="p-3 bg-[#13151b] border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+          <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setActiveTab('all')}
               className={`px-3 py-1 rounded-lg text-xs font-bold ${
                 activeTab === 'all' ? 'bg-[#C8102E] text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Tous les postes ({data.categories.length})
+              Tous ({data.categories.length})
             </button>
             <button
               onClick={() => setActiveTab('recette')}
@@ -227,7 +227,7 @@ export const EditGlobalBudgetModal: React.FC<EditGlobalBudgetModalProps> = ({
             </button>
           </div>
 
-          <div className="relative w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
             <input
               type="text"
@@ -240,8 +240,8 @@ export const EditGlobalBudgetModal: React.FC<EditGlobalBudgetModalProps> = ({
         </div>
 
         {/* Categories Table */}
-        <div className="p-4 overflow-y-auto flex-1">
-          <table className="w-full text-xs text-left border-collapse">
+        <div className="p-3 sm:p-4 overflow-y-auto overflow-x-auto flex-1">
+          <table className="w-full text-xs text-left border-collapse min-w-[720px]">
             <thead className="bg-slate-900 text-slate-400 font-bold sticky top-0 border-b border-slate-800">
               <tr>
                 <th className="py-2.5 px-3 w-20">Type</th>

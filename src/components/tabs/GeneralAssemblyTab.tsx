@@ -153,11 +153,11 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
   };
 
   return (
-    <div className={`p-6 space-y-6 overflow-y-auto ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0d0e12] p-8' : 'max-h-[calc(100vh-4rem)]'}`}>
+    <div className={`p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0d0e12] p-4 sm:p-8' : 'max-h-[calc(100vh-4rem)]'}`}>
       {/* Title & Projection controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-red-950/60 via-slate-900 to-slate-900 p-5 rounded-2xl border border-red-900/40 shadow-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-red-950/60 via-slate-900 to-slate-900 p-4 sm:p-5 rounded-2xl border border-red-900/40 shadow-lg">
         <div className="flex items-center space-x-3.5">
-          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#C8102E] shadow-md shadow-red-900/40 flex items-center justify-center bg-black shrink-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-[#C8102E] shadow-md shadow-red-900/40 flex items-center justify-center bg-black shrink-0">
             <img src="./logo.jpg" alt="Logo BBC" className="w-full h-full object-cover" />
           </div>
           <div>
@@ -167,7 +167,7 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
               </span>
               <span className="text-xs text-slate-300 font-bold">{currentYear.label}</span>
             </div>
-            <h2 className="text-2xl font-black text-white mt-0.5">
+            <h2 className="text-xl sm:text-2xl font-black text-white mt-0.5">
               Synthèse Financière Présentée aux Adhérents
             </h2>
             <p className="text-xs text-slate-400">
@@ -176,7 +176,7 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={toggleFullscreen}
             className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
@@ -195,7 +195,7 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
       </div>
 
       {/* 4 INDICATEURS PÉDAGOGIQUES NON-FINANCIERS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Résultat Net de la Saison */}
         <div className="p-5 rounded-2xl bg-[#171922] border border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div>

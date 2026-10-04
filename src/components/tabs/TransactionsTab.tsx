@@ -292,11 +292,11 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
   };
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
       {/* Title & Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-[#181a22] to-slate-900 p-5 rounded-2xl border border-slate-800 shadow-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-[#181a22] to-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md">
         <div>
-          <h2 className="text-2xl font-black text-white">
+          <h2 className="text-xl sm:text-2xl font-black text-white">
             Saisie et Gestion des Écritures
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -421,9 +421,9 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
         </div>
 
         {/* Info compteur */}
-        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-400 pt-1 border-t border-slate-800">
           <span>{filteredTransactions.length} écriture(s) trouvée(s)</span>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-3 sm:gap-4">
             <span className="text-emerald-400 font-bold">
               Total Recettes :{' '}
               {filteredTransactions
@@ -447,7 +447,7 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
       {/* TABLEAU DES ÉCRITURES */}
       <div className="bg-[#171922] border border-slate-800 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[750px]">
             <thead className="bg-[#0f1116] border-b border-slate-800 text-slate-400 uppercase font-bold text-[11px]">
               <tr>
                 <th className="py-3 px-3.5">Pointé</th>

@@ -104,6 +104,14 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
 
   const activeAccount = accountsCalculation.find((a) => a.id === selectedAccountId) || accountsCalculation[0];
 
+  // Update Initial Balance (valeur de départ du compte bancaire)
+  const handleUpdateInitialBalance = (accId: string, newInitial: number) => {
+    const updated = data.bankAccounts.map((a) =>
+      a.id === accId ? { ...a, initialBalance: newInitial } : a
+    );
+    onUpdateBankAccounts(updated);
+  };
+
   // Update Statement Balance in inline input
   const handleUpdateStatementBalance = (accId: string, newBalance: number) => {
     const updated = data.bankAccounts.map((a) =>
@@ -267,40 +275,40 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
   };
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
       {/* Title & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-[#181a22] to-slate-900 p-5 rounded-2xl border border-slate-800 shadow-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-[#181a22] to-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md">
         <div>
-          <h2 className="text-2xl font-black text-white">
+          <h2 className="text-xl sm:text-2xl font-black text-white">
             État des Comptes & Rapprochement Bancaire
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Suivi des liquidités, gestion des virements internes et contrôle des écarts de trésorerie
           </p>
         </div>
-        <div className="flex items-center space-x-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={onOpenBankStatementModal}
-            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-all active:scale-95"
+            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-all active:scale-95"
             title="Importer un relevé bancaire Excel (Crédit Agricole...) et catégoriser les opérations sur le compte de résultat"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Importer Relevé Bancaire (.xlsx)</span>
+            <span>Importer Relevé (.xlsx)</span>
           </button>
           <button
             onClick={handleOpenTransferModal}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
           >
             <ArrowRightLeft className="w-4 h-4 text-blue-400" />
-            <span>Virement Interne</span>
+            <span>Virement</span>
           </button>
           <button
             onClick={() => setIsManageAccountsModalOpen(true)}
-            className="px-3.5 py-2 bg-[#C8102E] hover:bg-[#a50d26] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-red-950/40 transition-all active:scale-95"
+            className="px-3 py-2 bg-[#C8102E] hover:bg-[#a50d26] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-red-950/40 transition-all active:scale-95"
             title="Gérer les comptes : ajouter ou supprimer des comptes bancaires et caisses"
           >
             <Landmark className="w-4 h-4" />
-            <span>Gestion des Comptes</span>
+            <span>Gestion Comptes</span>
           </button>
         </div>
       </div>
@@ -351,9 +359,15 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
                 <div className="text-xl font-black text-white">
                   {acc.calculatedBalance.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1 flex justify-between">
+                <div className="text-[11px] text-slate-400 mt-1 flex justify-between items-center">
+                  <span>Solde de départ :</span>
+                  <span className="font-semibold text-amber-300 font-mono">
+                    {acc.initialBalance.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5 flex justify-between items-center">
                   <span>Relevé réel :</span>
-                  <span className="font-semibold text-slate-300">
+                  <span className="font-semibold text-slate-300 font-mono">
                     {acc.statementBalance.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
                   </span>
                 </div>
@@ -404,18 +418,38 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
               </p>
             </div>
 
-            {/* Saisie directe du solde relevé bancaire réel */}
-            <div className="flex items-center space-x-3 bg-slate-900 p-2 rounded-xl border border-slate-800">
-              <span className="text-xs text-slate-300 font-medium">
-                Solde Relevé Bancaire Réel (€) :
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                value={activeAccount.statementBalance}
-                onChange={(e) => handleUpdateStatementBalance(activeAccount.id, parseFloat(e.target.value) || 0)}
-                className="w-32 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-sm font-bold text-white font-mono focus:outline-none focus:border-[#C8102E]"
-              />
+            {/* Saisie directe : Valeur de départ (solde initial) + Solde relevé réel */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Valeur de départ */}
+              <div className="flex items-center space-x-2 bg-slate-900 p-2 rounded-xl border border-slate-800">
+                <span className="text-xs text-amber-300 font-semibold flex items-center gap-1">
+                  <Wallet className="w-3.5 h-3.5 text-amber-400" />
+                  Solde de départ (€) :
+                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={activeAccount.initialBalance}
+                  onChange={(e) => handleUpdateInitialBalance(activeAccount.id, parseFloat(e.target.value) || 0)}
+                  className="w-28 sm:w-32 px-2.5 py-1 bg-slate-800 border border-amber-600/60 rounded-lg text-sm font-bold text-amber-300 font-mono focus:outline-none focus:border-amber-400"
+                  title="Modifier la valeur de départ (solde initial) de ce compte"
+                />
+              </div>
+
+              {/* Solde Relevé Bancaire Réel */}
+              <div className="flex items-center space-x-2 bg-slate-900 p-2 rounded-xl border border-slate-800">
+                <span className="text-xs text-slate-300 font-medium">
+                  Relevé réel (€) :
+                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={activeAccount.statementBalance}
+                  onChange={(e) => handleUpdateStatementBalance(activeAccount.id, parseFloat(e.target.value) || 0)}
+                  className="w-28 sm:w-32 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-sm font-bold text-white font-mono focus:outline-none focus:border-[#C8102E]"
+                  title="Solde constaté sur le dernier relevé bancaire"
+                />
+              </div>
             </div>
           </div>
 
@@ -484,8 +518,8 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
                 Toutes les écritures de ce compte sont rapprochées avec le relevé de banque.
               </div>
             ) : (
-              <div className="border border-slate-800 rounded-xl overflow-hidden">
-                <table className="w-full text-xs text-left">
+              <div className="border border-slate-800 rounded-xl overflow-x-auto">
+                <table className="w-full text-xs text-left min-w-[520px]">
                   <thead className="bg-slate-900 text-slate-400 font-bold border-b border-slate-800">
                     <tr>
                       <th className="py-2.5 px-3">Pointer</th>
@@ -528,7 +562,7 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
       )}
 
       {/* HISTORIQUE DES VIREMENTS INTERNES */}
-      <div className="bg-[#171922] border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+      <div className="bg-[#171922] border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
             <ArrowRightLeft className="w-4 h-4 text-blue-400" />
@@ -540,8 +574,8 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
         {data.transfers.length === 0 ? (
           <p className="text-xs text-slate-500 italic py-3">Aucun virement interne enregistré.</p>
         ) : (
-          <div className="border border-slate-800 rounded-xl overflow-hidden">
-            <table className="w-full text-xs text-left">
+          <div className="border border-slate-800 rounded-xl overflow-x-auto">
+            <table className="w-full text-xs text-left min-w-[550px]">
               <thead className="bg-slate-900 text-slate-400 font-bold border-b border-slate-800">
                 <tr>
                   <th className="py-2.5 px-3">Date</th>
@@ -746,7 +780,7 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
                     return (
                       <div
                         key={acc.id}
-                        className="flex items-center justify-between p-3.5 bg-slate-900/90 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-slate-900/90 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors"
                       >
                         <div className="flex items-center space-x-3 min-w-0">
                           <span
@@ -763,13 +797,25 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-4 shrink-0">
-                          <div className="text-right">
-                            <div className="text-xs font-mono font-bold text-slate-200">
-                              Solde initial : {acc.initialBalance.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
-                            </div>
+                        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
+                          <div className="flex items-center gap-1.5 bg-slate-800/90 px-2.5 py-1 rounded-lg border border-slate-700">
+                            <span className="text-[11px] font-semibold text-amber-300">
+                              Solde départ :
+                            </span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={acc.initialBalance}
+                              onChange={(e) => handleUpdateInitialBalance(acc.id, parseFloat(e.target.value) || 0)}
+                              className="w-24 px-2 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs font-mono font-bold text-amber-300 text-right focus:outline-none focus:border-amber-400"
+                              title="Modifier la valeur de départ de ce compte"
+                            />
+                            <span className="text-xs text-slate-400">€</span>
+                          </div>
+
+                          <div className="text-right hidden sm:block">
                             <div className="text-[11px] text-slate-400">
-                              {txCount} opération(s)
+                              {txCount} op.
                             </div>
                           </div>
 

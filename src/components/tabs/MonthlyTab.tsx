@@ -119,11 +119,11 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ data, currentYear }) => 
   const categoriesDep = data.categories.filter((c) => c.type === 'depense');
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
       {/* Title & Mode Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-[#181a22] to-slate-900 p-5 rounded-2xl border border-slate-800 shadow-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-[#181a22] to-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md">
         <div>
-          <h2 className="text-2xl font-black text-white">
+          <h2 className="text-xl sm:text-2xl font-black text-white">
             Suivi et Réalisation Mensuelle
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -155,7 +155,7 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ data, currentYear }) => 
       </div>
 
       {/* COMPARATIF MENSUEL DÉTAILLÉ (MOIS N vs PRÉVISIONNEL) */}
-      <div className="bg-[#171922] p-5 rounded-2xl border border-slate-800 shadow-sm space-y-4">
+      <div className="bg-[#171922] p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div className="flex items-center space-x-2">
             <Calendar className="w-5 h-5 text-[#C8102E]" />
@@ -180,7 +180,7 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ data, currentYear }) => 
         </div>
 
         {/* 4 Cards comparatives pour le mois N */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Card Dépenses du mois */}
           <div className="p-4 bg-slate-900/90 rounded-xl border border-slate-800">
             <div className="text-xs text-slate-400 uppercase font-semibold">

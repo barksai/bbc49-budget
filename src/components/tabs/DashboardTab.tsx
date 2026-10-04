@@ -198,9 +198,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     .slice(0, 5);
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
       {/* Title & Season Info */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-[#181a22] to-slate-900 p-5 rounded-2xl border border-slate-800 shadow-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-[#181a22] to-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-red-950/80 text-red-400 border border-red-800/40">
@@ -210,7 +210,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               Du {new Date(currentYear.startDate).toLocaleDateString('fr-FR')} au {new Date(currentYear.endDate).toLocaleDateString('fr-FR')}
             </span>
           </div>
-          <h2 className="text-2xl font-black text-white mt-1">
+          <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
             Tableau de Bord de Pilotage
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -228,7 +228,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       </div>
 
       {/* 5 KPIs CARDS (Conforme Spécifications Cahier des Charges) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         {/* KPI 1 : Taux d'exécution Recettes */}
         <div className="bg-[#171922] border border-slate-800/80 rounded-xl p-4 shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-400">

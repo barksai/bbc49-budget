@@ -164,19 +164,19 @@ export const IncomeStatementTab: React.FC<IncomeStatementTabProps> = ({
   const resultDiff = resultReal - resultPlanned;
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
       {/* Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-[#181a22] to-slate-900 p-5 rounded-2xl border border-slate-800 shadow-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-[#181a22] to-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md">
         <div>
-          <h2 className="text-2xl font-black text-white">
+          <h2 className="text-xl sm:text-2xl font-black text-white">
             Compte de Résultat Associatif
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Présentation normalisée conforme au Plan Comptable Associatif (N-1, Budget Validé, Réalisé N, Écarts en € et %)
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <span className="px-3 py-1 bg-slate-800 text-slate-300 text-xs font-bold rounded-lg border border-slate-700">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="px-3 py-1.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-lg border border-slate-700">
             {currentYear.label}
           </span>
           <button
@@ -191,7 +191,7 @@ export const IncomeStatementTab: React.FC<IncomeStatementTabProps> = ({
       </div>
 
       {/* SYNTHÈSE RÉSULTAT NET */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="p-4 bg-[#171922] border border-slate-800 rounded-xl shadow-sm">
           <span className="text-xs text-slate-400 font-bold uppercase">Résultat Validé (Budget)</span>
           <div className="text-2xl font-black text-white mt-1">

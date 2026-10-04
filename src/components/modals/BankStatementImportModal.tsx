@@ -572,8 +572,8 @@ export const BankStatementImportModal: React.FC<BankStatementImportModalProps> =
               </div>
 
               {/* Table of operations with Category Selector */}
-              <div className="border border-slate-800 rounded-xl overflow-hidden max-h-96 overflow-y-auto">
-                <table className="w-full text-xs text-left border-collapse">
+              <div className="border border-slate-800 rounded-xl max-h-96 overflow-y-auto overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse min-w-[650px]">
                   <thead className="bg-slate-900 text-slate-400 font-bold sticky top-0 z-10 border-b border-slate-800">
                     <tr>
                       <th className="py-2.5 px-3 w-10 text-center">Imp.</th>

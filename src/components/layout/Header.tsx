@@ -8,7 +8,8 @@ import {
   Upload,
   CheckCircle2,
   Calendar,
-  Wallet
+  Wallet,
+  Menu
 } from 'lucide-react';
 import { FiscalYear } from '../../types/budget';
 
@@ -26,6 +27,7 @@ interface HeaderProps {
   lastSavedAt?: string;
   isSaving: boolean;
   saveSuccess: boolean;
+  onToggleMobileMenu?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -42,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   lastSavedAt,
   isSaving,
   saveSuccess,
+  onToggleMobileMenu,
 }) => {
   const [showFileMenu, setShowFileMenu] = useState(false);
 
@@ -52,16 +55,27 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="h-16 bg-[#16181f] border-b border-slate-800 px-6 flex items-center justify-between shrink-0 shadow-sm">
-      {/* Left: Fiscal Year Switcher & Cash Badge */}
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-          <Calendar className="w-4 h-4 text-[#C8102E]" />
-          <span className="text-xs text-slate-400 font-medium">Exercice :</span>
+    <header className="h-16 bg-[#16181f] border-b border-slate-800 px-3 sm:px-6 flex items-center justify-between shrink-0 shadow-sm gap-2">
+      {/* Left: Mobile Toggle, Fiscal Year Switcher & Cash Badge */}
+      <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
+        {onToggleMobileMenu && (
+          <button
+            type="button"
+            onClick={onToggleMobileMenu}
+            className="md:hidden p-2 -ml-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+            title="Ouvrir le menu de navigation"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+
+        <div className="flex items-center space-x-1.5 sm:space-x-2 bg-slate-900 px-2 sm:px-3 py-1.5 rounded-lg border border-slate-800 min-w-0">
+          <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#C8102E] shrink-0" />
+          <span className="hidden md:inline text-xs text-slate-400 font-medium">Exercice :</span>
           <select
             value={currentFiscalYear.id}
             onChange={(e) => onSelectFiscalYear(e.target.value)}
-            className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer pr-1"
+            className="bg-transparent text-xs sm:text-sm font-bold text-white focus:outline-none cursor-pointer pr-1 truncate max-w-[140px] sm:max-w-[200px]"
           >
             {fiscalYears.map((fy) => (
               <option key={fy.id} value={fy.id} className="bg-slate-900 text-white">
@@ -72,61 +86,61 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onAddNewFiscalYear}
             title="Créer un nouvel exercice"
-            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors"
+            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors shrink-0"
           >
-            <PlusCircle className="w-4 h-4 text-emerald-400" />
+            <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
           </button>
         </div>
 
         {/* Cash quick badge */}
-        <div className="hidden md:flex items-center space-x-2 bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-800/80">
-          <Wallet className="w-4 h-4 text-emerald-400" />
-          <span className="text-xs text-slate-400">Trésorerie disponible :</span>
-          <span className="text-xs font-bold text-emerald-400">
-            {totalCashAvailable.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
+        <div className="flex items-center space-x-1.5 bg-slate-900/80 px-2 sm:px-3 py-1.5 rounded-lg border border-slate-800/80 shrink-0">
+          <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
+          <span className="hidden lg:inline text-xs text-slate-400">Trésorerie :</span>
+          <span className="text-xs font-bold text-emerald-400 font-mono">
+            {totalCashAvailable.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €
           </span>
         </div>
       </div>
 
       {/* Right: Actions, Export & Save */}
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
         {/* Export PDF Button */}
         <button
           onClick={onExportPdf}
-          className="flex items-center space-x-2 px-3 py-1.5 bg-[#C8102E] hover:bg-[#a50d26] text-white text-xs font-bold rounded-lg shadow-sm transition-all shadow-red-950/40 active:scale-95"
+          className="flex items-center space-x-1.5 px-2 sm:px-3 py-1.5 bg-[#C8102E] hover:bg-[#a50d26] text-white text-xs font-bold rounded-lg shadow-sm transition-all shadow-red-950/40 active:scale-95"
           title="Exporter le rapport d'AG & Bilan au format PDF A4"
         >
-          <FileDown className="w-4 h-4" />
-          <span>Export PDF (Bilan & AG)</span>
+          <FileDown className="w-4 h-4 shrink-0" />
+          <span className="hidden sm:inline">Export PDF</span>
         </button>
 
         {/* Export Excel Button */}
         <button
           onClick={onExportExcel}
-          className="flex items-center space-x-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all shadow-emerald-950/40 active:scale-95"
+          className="flex items-center space-x-1.5 px-2 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all shadow-emerald-950/40 active:scale-95"
           title="Exporter le classeur Excel multi-onglets complet"
         >
-          <FileSpreadsheet className="w-4 h-4" />
-          <span>Export Excel (.xlsx)</span>
+          <FileSpreadsheet className="w-4 h-4 shrink-0" />
+          <span className="hidden sm:inline">Export Excel</span>
         </button>
 
         {/* Save button */}
         <button
           onClick={onSaveData}
           disabled={isSaving}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+          className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
             saveSuccess
               ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300'
               : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
           }`}
-          title="Enregistrer les modifications sur le disque local"
+          title="Enregistrer les modifications sur le serveur"
         >
           {saveSuccess ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 animate-pulse shrink-0" />
           ) : (
-            <Save className="w-4 h-4 text-slate-300" />
+            <Save className="w-4 h-4 text-slate-300 shrink-0" />
           )}
-          <span>{saveSuccess ? 'Enregistré !' : isSaving ? 'Sauvegarde...' : 'Sauvegarder'}</span>
+          <span className="hidden xs:inline sm:inline">{saveSuccess ? 'Enregistré !' : isSaving ? 'Sauvegarde...' : 'Sauvegarder'}</span>
         </button>
 
         {/* Data menu dropdown */}

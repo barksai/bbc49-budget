@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  bbc49-budget:
+    container_name: bbc49-budget
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bbc49-budget:latest
+    restart: unless-stopped
+    ports:
+      # Port hôte : Port conteneur (modifiez 3000 par le port souhaité sur votre serveur si besoin)
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATA_DIR=/app/data
+    volumes:
+      # Persistance de la base de données et des sauvegardes sur l'hôte Debian
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

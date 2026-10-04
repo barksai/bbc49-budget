@@ -1,0 +1,52 @@
+{
+  "name": "bbc49-budget",
+  "version": "1.0.0",
+  "description": "Application de Suivi et Pilotage Budgétaire - Bouchemaine Basket Club (BBC49)",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "node server/index.js",
+    "start": "node server/index.js",
+    "electron": "electron electron/main.cjs"
+  },
+  "keywords": [
+    "budget",
+    "association",
+    "basket",
+    "bbc49",
+    "bouchemaine",
+    "portainer",
+    "docker"
+  ],
+  "author": "Bouchemaine Basket Club",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "lucide-react": "^1.52.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "recharts": "^3.10.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.6.1",
+    "electron": "^28.3.3",
+    "electron-packager": "^17.1.2",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^7.0.2",
+    "vite": "^5.4.11"
+  }
+}

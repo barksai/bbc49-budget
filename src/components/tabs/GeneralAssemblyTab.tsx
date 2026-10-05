@@ -102,41 +102,115 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
     '#E11D48', // Rose
   ];
 
-  // Indicateurs pédagogiques AG : détection robuste des catégories
-  const isSubvCategory = (catId: string) => {
-    if (catId === 'cat-rec-subv' || catId === 'cat-recette-subventions-d-exploitation') return true;
-    const cat = data.categories.find((c) => c.id === catId);
-    if (!cat) return false;
-    const n = cat.name.toLowerCase();
-    return n.includes('subvention') || n.includes('mairie') || n.includes('collectiv') || n.includes('ans ');
+  // Normalisation de texte (minuscules + suppression des accents)
+  const normalizeText = (str?: string) =>
+    (str || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+  // Indicateurs pédagogiques AG : détection hybride et robuste (par catégorie OU par libellé/notes d'opération)
+  const isCotisTransaction = (t: (typeof currentYearTx)[0]) => {
+    // 1. Détection par catégorie
+    if (t.categoryId === 'cat-rec-cotis') return true;
+    const cat = data.categories.find((c) => c.id === t.categoryId);
+    if (cat) {
+      const cn = normalizeText(cat.name);
+      if (cn.includes('cotis') || cn.includes('licenc') || cn.includes('adher') || cn.includes('adhesion')) {
+        return true;
+      }
+    }
+
+    // 2. Détection par libellé d'opération, commentaires ou référence
+    const text = normalizeText(`${t.label || ''} ${t.notes || ''} ${t.invoiceRef || ''}`);
+    return (
+      text.includes('cotis') ||
+      text.includes('licenc') ||
+      text.includes('adher') ||
+      text.includes('adhesion') ||
+      text.includes('basket fit') ||
+      text.includes('basketfit') ||
+      text.includes('helloasso')
+    );
   };
 
-  const isCotisCategory = (catId: string) => {
-    if (catId === 'cat-rec-cotis') return true;
-    const cat = data.categories.find((c) => c.id === catId);
-    if (!cat) return false;
-    const n = cat.name.toLowerCase();
-    return n.includes('cotis') || n.includes('licence') || n.includes('adhér') || n.includes('adhesion');
+  const isSubvTransaction = (t: (typeof currentYearTx)[0]) => {
+    // 1. Détection par catégorie
+    if (t.categoryId === 'cat-rec-subv' || t.categoryId === 'cat-recette-subventions-d-exploitation') return true;
+    const cat = data.categories.find((c) => c.id === t.categoryId);
+    if (cat) {
+      const cn = normalizeText(cat.name);
+      if (
+        cn.includes('subvention') ||
+        cn.includes('mairie') ||
+        cn.includes('collectiv') ||
+        cn.includes('ans ') ||
+        cn.includes('departement') ||
+        cn.includes('region')
+      ) {
+        return true;
+      }
+    }
+
+    // 2. Détection par libellé d'opération, commentaires ou référence
+    const text = normalizeText(`${t.label || ''} ${t.notes || ''} ${t.invoiceRef || ''}`);
+    return (
+      text.includes('subvention') ||
+      text.includes('subv') ||
+      text.includes('mairie') ||
+      text.includes('collectiv') ||
+      text.includes('sgc') ||
+      text.includes('conseil dep') ||
+      text.includes('departement') ||
+      text.includes('region') ||
+      text.includes('ans ') ||
+      text.includes('cnds') ||
+      text.includes('tresorerie municipale') ||
+      text.includes('tresor public')
+    );
   };
 
-  const isSponsCategory = (catId: string) => {
-    if (catId === 'cat-rec-spons' || catId === 'cat-recette-produits-sponsorings') return true;
-    const cat = data.categories.find((c) => c.id === catId);
-    if (!cat) return false;
-    const n = cat.name.toLowerCase();
-    return n.includes('spons') || n.includes('mécén') || n.includes('mecen') || n.includes('partenair');
+  const isSponsTransaction = (t: (typeof currentYearTx)[0]) => {
+    // 1. Détection par catégorie
+    if (t.categoryId === 'cat-rec-spons' || t.categoryId === 'cat-recette-produits-sponsorings') return true;
+    const cat = data.categories.find((c) => c.id === t.categoryId);
+    if (cat) {
+      const cn = normalizeText(cat.name);
+      if (
+        cn.includes('spons') ||
+        cn.includes('mecen') ||
+        cn.includes('partenair') ||
+        cn.includes('don ') ||
+        cn.includes('dons')
+      ) {
+        return true;
+      }
+    }
+
+    // 2. Détection par libellé d'opération, commentaires ou référence
+    const text = normalizeText(`${t.label || ''} ${t.notes || ''} ${t.invoiceRef || ''}`);
+    return (
+      text.includes('spons') ||
+      text.includes('mecen') ||
+      text.includes('partenair') ||
+      text.includes('donateur') ||
+      text.includes('donatrice') ||
+      text.includes('mecenat')
+    );
   };
 
-  const subvAmount = currentYearTx
-    .filter((t) => t.type === 'recette' && t.status === 'realise' && isSubvCategory(t.categoryId))
+  const realRecettesTx = currentYearTx.filter((t) => t.type === 'recette' && t.status === 'realise');
+
+  const cotisAmount = realRecettesTx
+    .filter((t) => isCotisTransaction(t))
     .reduce((s, t) => s + t.amount, 0);
 
-  const cotisAmount = currentYearTx
-    .filter((t) => t.type === 'recette' && t.status === 'realise' && isCotisCategory(t.categoryId))
+  const subvAmount = realRecettesTx
+    .filter((t) => !isCotisTransaction(t) && isSubvTransaction(t))
     .reduce((s, t) => s + t.amount, 0);
 
-  const sponsAmount = currentYearTx
-    .filter((t) => t.type === 'recette' && t.status === 'realise' && isSponsCategory(t.categoryId))
+  const sponsAmount = realRecettesTx
+    .filter((t) => !isCotisTransaction(t) && !isSubvTransaction(t) && isSponsTransaction(t))
     .reduce((s, t) => s + t.amount, 0);
 
   const subvDependencePct = totalRealRec > 0 ? (subvAmount / totalRealRec) * 100 : 0;

@@ -84,7 +84,13 @@ export const BankStatementImportModal: React.FC<BankStatementImportModalProps> =
     if (type === 'recette') {
       // Licences / Cotisations
       if (l.includes('helloasso') || l.includes('cotisation') || l.includes('licence') || l.includes('basket fit') || l.includes('adhesion')) {
-        const catLic = data.categories.find(c => c.name.toLowerCase().includes('gestion courante') || c.name.toLowerCase().includes('licence'));
+        const catLic = data.categories.find(c =>
+          c.id === 'cat-rec-cotis' ||
+          c.name.toLowerCase().includes('cotis') ||
+          c.name.toLowerCase().includes('licenc') ||
+          c.name.toLowerCase().includes('adher') ||
+          c.name.toLowerCase().includes('gestion courante')
+        );
         if (catLic) return catLic.id;
       }
       // Vente bar / Cartes
@@ -93,13 +99,23 @@ export const BankStatementImportModal: React.FC<BankStatementImportModalProps> =
         if (catVente) return catVente.id;
       }
       // Mairie / Subvention
-      if (l.includes('mairie') || l.includes('subvention') || l.includes('sgc')) {
-        const catSub = data.categories.find(c => c.name.toLowerCase().includes('subvention') || c.name.toLowerCase().includes('prestation'));
+      if (l.includes('mairie') || l.includes('subvention') || l.includes('sgc') || l.includes('departement') || l.includes('region')) {
+        const catSub = data.categories.find(c =>
+          c.id === 'cat-rec-subv' ||
+          c.name.toLowerCase().includes('subvention') ||
+          c.name.toLowerCase().includes('mairie') ||
+          c.name.toLowerCase().includes('collectiv')
+        );
         if (catSub) return catSub.id;
       }
       // Sponsoring / Partenariats / Mécénat
-      if (l.includes('sponsor') || l.includes('mecenat') || l.includes('auto ecole') || l.includes('plombier') || l.includes('toubin')) {
-        const catSpon = data.categories.find(c => c.name.toLowerCase().includes('produits') || c.name.toLowerCase().includes('sponsor'));
+      if (l.includes('sponsor') || l.includes('mecenat') || l.includes('mécénat') || l.includes('partenaire') || l.includes('auto ecole') || l.includes('plombier') || l.includes('toubin')) {
+        const catSpon = data.categories.find(c =>
+          c.id === 'cat-rec-spons' ||
+          c.name.toLowerCase().includes('sponsor') ||
+          c.name.toLowerCase().includes('mecen') ||
+          c.name.toLowerCase().includes('partenair')
+        );
         if (catSpon) return catSpon.id;
       }
       // Activités / Tournoi / Confluente

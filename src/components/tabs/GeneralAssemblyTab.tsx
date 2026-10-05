@@ -70,12 +70,60 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
     .filter((b) => b.fiscalYearId === currentYear.id && data.categories.find((c) => c.id === b.categoryId)?.type === 'depense')
     .reduce((s, b) => s + b.plannedAmount, 0);
 
-  // Indicateurs pédagogiques AG
+  // Palettes variées à fort contraste pour les graphiques camemberts d'AG
+  const RECETTE_PALETTE = [
+    '#10B981', // Emerald
+    '#3B82F6', // Blue
+    '#F59E0B', // Amber
+    '#8B5CF6', // Purple
+    '#06B6D4', // Cyan
+    '#EC4899', // Pink
+    '#14B8A6', // Teal
+    '#F97316', // Orange
+    '#6366F1', // Indigo
+    '#84CC16', // Lime
+    '#D946EF', // Fuchsia
+    '#22C55E', // Green
+  ];
+
+  const DEPENSE_PALETTE = [
+    '#EF4444', // Red
+    '#F97316', // Orange
+    '#8B5CF6', // Purple
+    '#3B82F6', // Blue
+    '#F59E0B', // Amber
+    '#EC4899', // Pink
+    '#06B6D4', // Cyan
+    '#10B981', // Emerald
+    '#64748B', // Slate
+    '#D946EF', // Fuchsia
+    '#A855F7', // Violet
+    '#E11D48', // Rose
+  ];
+
+  // Indicateurs pédagogiques AG : détection robuste des catégories
+  const isSubvCategory = (catId: string) => {
+    if (catId === 'cat-rec-subv' || catId === 'cat-recette-subventions-d-exploitation') return true;
+    const cat = data.categories.find((c) => c.id === catId);
+    if (!cat) return false;
+    const n = cat.name.toLowerCase();
+    return n.includes('subvention') || n.includes('mairie') || n.includes('collectiv') || n.includes('ans ');
+  };
+
+  const isCotisCategory = (catId: string) => {
+    if (catId === 'cat-rec-cotis') return true;
+    const cat = data.categories.find((c) => c.id === catId);
+    if (!cat) return false;
+    const n = cat.name.toLowerCase();
+    return n.includes('cotis') || n.includes('licence') || n.includes('adhér') || n.includes('adhesion');
+  };
+
   const subvAmount = currentYearTx
-    .filter((t) => t.categoryId === 'cat-rec-subv' && t.status === 'realise')
+    .filter((t) => t.type === 'recette' && t.status === 'realise' && isSubvCategory(t.categoryId))
     .reduce((s, t) => s + t.amount, 0);
+
   const cotisAmount = currentYearTx
-    .filter((t) => t.categoryId === 'cat-rec-cotis' && t.status === 'realise')
+    .filter((t) => t.type === 'recette' && t.status === 'realise' && isCotisCategory(t.categoryId))
     .reduce((s, t) => s + t.amount, 0);
 
   const subvDependencePct = totalRealRec > 0 ? (subvAmount / totalRealRec) * 100 : 0;
@@ -92,7 +140,7 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
   const monthlyExpenseAverage = totalRealDep > 0 ? totalRealDep / 8 : (totalPlannedDep / 12) || 3000;
   const cashReserveMonths = monthlyExpenseAverage > 0 ? totalCash / monthlyExpenseAverage : 0;
 
-  // Données Donut Recettes
+  // Données Donut Recettes (avec attribution de couleurs variées par item)
   const recDonutData = data.categories
     .filter((c) => c.type === 'recette')
     .map((c) => {
@@ -100,15 +148,19 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
         .filter((t) => t.categoryId === c.id && t.status === 'realise')
         .reduce((s, t) => s + t.amount, 0);
       return {
+        id: c.id,
         name: c.name,
         value: val,
-        color: c.color || '#10B981',
       };
     })
     .filter((d) => d.value > 0)
-    .sort((a, b) => b.value - a.value);
+    .sort((a, b) => b.value - a.value)
+    .map((item, index) => ({
+      ...item,
+      color: RECETTE_PALETTE[index % RECETTE_PALETTE.length],
+    }));
 
-  // Données Donut Dépenses
+  // Données Donut Dépenses (avec attribution de couleurs variées par item)
   const depDonutData = data.categories
     .filter((c) => c.type === 'depense')
     .map((c) => {
@@ -116,13 +168,17 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
         .filter((t) => t.categoryId === c.id && t.status === 'realise')
         .reduce((s, t) => s + t.amount, 0);
       return {
+        id: c.id,
         name: c.name,
         value: val,
-        color: c.color || '#C8102E',
       };
     })
     .filter((d) => d.value > 0)
-    .sort((a, b) => b.value - a.value);
+    .sort((a, b) => b.value - a.value)
+    .map((item, index) => ({
+      ...item,
+      color: DEPENSE_PALETTE[index % DEPENSE_PALETTE.length],
+    }));
 
   // Comparatif Bar Chart AG
   const comparisonData = [
@@ -280,7 +336,7 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
       {/* GRANDS GRAPHIQUES FORMAT AG */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Donut Grands Formats Recettes */}
-        <div className="bg-[#171922] border border-slate-800 rounded-2xl p-6 shadow-sm">
+        <div className="bg-[#171922] border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-base font-extrabold text-white flex items-center gap-2">
@@ -291,34 +347,75 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
             </div>
           </div>
 
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={recDonutData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={95}
-                  innerRadius={50}
-                  paddingAngle={3}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name.slice(0, 15)}... ${(percent * 100).toFixed(0)}%`}
-                >
-                  {recDonutData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#111317', borderColor: '#334155', borderRadius: '8px', fontSize: '13px' }}
-                  formatter={(val: any) => [`${Number(val).toLocaleString('fr-FR')} €`, '']}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          {recDonutData.length === 0 ? (
+            <div className="h-64 flex flex-col items-center justify-center text-slate-500 text-xs">
+              <PieIcon className="w-8 h-8 mb-2 opacity-40 text-emerald-400" />
+              <span>Aucune recette réalisée enregistrée sur cet exercice.</span>
+            </div>
+          ) : (
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              {/* Le Donut sans étiquettes qui chevauchent */}
+              <div className="h-64 w-full md:w-1/2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={recDonutData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={88}
+                      innerRadius={48}
+                      paddingAngle={3}
+                      dataKey="value"
+                      label={false}
+                    >
+                      {recDonutData.map((entry, index) => (
+                        <Cell key={`cell-rec-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#111317', borderColor: '#334155', borderRadius: '8px', fontSize: '12px' }}
+                      formatter={(val: any) => [`${Number(val).toLocaleString('fr-FR')} €`, '']}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Légende sur le côté avec pastille de couleur, nom, montant et pourcentage */}
+              <div className="w-full md:w-1/2 space-y-1.5 max-h-64 overflow-y-auto pr-1 text-xs">
+                {recDonutData.map((item) => {
+                  const pct = totalRealRec > 0 ? (item.value / totalRealRec) * 100 : 0;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-2 rounded-lg bg-slate-900/70 border border-slate-800/80 hover:border-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 mr-2">
+                        <span
+                          className="w-3 h-3 rounded-full shrink-0 shadow-sm"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-slate-200 font-medium truncate" title={item.name}>
+                          {item.name}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-bold text-white font-mono">
+                          {item.value.toLocaleString('fr-FR')} €
+                        </span>
+                        <span className="text-[10px] text-emerald-400 font-semibold ml-1.5 font-mono">
+                          {pct.toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Donut Grands Formats Dépenses */}
-        <div className="bg-[#171922] border border-slate-800 rounded-2xl p-6 shadow-sm">
+        <div className="bg-[#171922] border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-base font-extrabold text-white flex items-center gap-2">
@@ -329,30 +426,71 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
             </div>
           </div>
 
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={depDonutData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={95}
-                  innerRadius={50}
-                  paddingAngle={3}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name.slice(0, 15)}... ${(percent * 100).toFixed(0)}%`}
-                >
-                  {depDonutData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#111317', borderColor: '#334155', borderRadius: '8px', fontSize: '13px' }}
-                  formatter={(val: any) => [`${Number(val).toLocaleString('fr-FR')} €`, '']}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          {depDonutData.length === 0 ? (
+            <div className="h-64 flex flex-col items-center justify-center text-slate-500 text-xs">
+              <PieIcon className="w-8 h-8 mb-2 opacity-40 text-red-400" />
+              <span>Aucune dépense réalisée enregistrée sur cet exercice.</span>
+            </div>
+          ) : (
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              {/* Le Donut sans étiquettes qui chevauchent */}
+              <div className="h-64 w-full md:w-1/2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={depDonutData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={88}
+                      innerRadius={48}
+                      paddingAngle={3}
+                      dataKey="value"
+                      label={false}
+                    >
+                      {depDonutData.map((entry, index) => (
+                        <Cell key={`cell-dep-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#111317', borderColor: '#334155', borderRadius: '8px', fontSize: '12px' }}
+                      formatter={(val: any) => [`${Number(val).toLocaleString('fr-FR')} €`, '']}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Légende sur le côté avec pastille de couleur, nom, montant et pourcentage */}
+              <div className="w-full md:w-1/2 space-y-1.5 max-h-64 overflow-y-auto pr-1 text-xs">
+                {depDonutData.map((item) => {
+                  const pct = totalRealDep > 0 ? (item.value / totalRealDep) * 100 : 0;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-2 rounded-lg bg-slate-900/70 border border-slate-800/80 hover:border-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 mr-2">
+                        <span
+                          className="w-3 h-3 rounded-full shrink-0 shadow-sm"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-slate-200 font-medium truncate" title={item.name}>
+                          {item.name}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-bold text-white font-mono">
+                          {item.value.toLocaleString('fr-FR')} €
+                        </span>
+                        <span className="text-[10px] text-red-400 font-semibold ml-1.5 font-mono">
+                          {pct.toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

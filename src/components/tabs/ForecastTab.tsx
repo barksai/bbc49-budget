@@ -19,6 +19,7 @@ interface ForecastTabProps {
   onUpdateBudgetItems: (items: BudgetItem[]) => void;
   onUpdateScenarios: (scenarios: any) => void;
   onOpenEditGlobalBudgetModal: () => void;
+  isReadOnly?: boolean;
 }
 
 export const ForecastTab: React.FC<ForecastTabProps> = ({
@@ -27,6 +28,7 @@ export const ForecastTab: React.FC<ForecastTabProps> = ({
   onUpdateBudgetItems,
   onUpdateScenarios,
   onOpenEditGlobalBudgetModal,
+  isReadOnly = false,
 }) => {
   // Scenarios state
   const defaultScenarios = currentYear.scenarios || {
@@ -164,14 +166,16 @@ export const ForecastTab: React.FC<ForecastTabProps> = ({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={onOpenEditGlobalBudgetModal}
-            className="px-3.5 py-2 bg-[#C8102E] hover:bg-[#a50d26] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-red-950/40 transition-all active:scale-95"
-            title="Modifier les montants prévus du budget global"
-          >
-            <Scale className="w-4 h-4" />
-            <span>Modifier le Budget Global</span>
-          </button>
+          {!isReadOnly && (
+            <button
+              onClick={onOpenEditGlobalBudgetModal}
+              className="px-3.5 py-2 bg-[#C8102E] hover:bg-[#a50d26] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-red-950/40 transition-all active:scale-95"
+              title="Modifier les montants prévus du budget global"
+            >
+              <Scale className="w-4 h-4" />
+              <span>Modifier le Budget Global</span>
+            </button>
+          )}
           <button
             onClick={() => setShowConfigSliders(!showConfigSliders)}
             className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
@@ -379,9 +383,11 @@ export const ForecastTab: React.FC<ForecastTabProps> = ({
             <TrendingUp className="w-4 h-4 text-[#C8102E]" />
             Matrice Prévisionnelle par Pôle & Simulation Côte à Côte
           </h3>
-          <span className="text-xs text-slate-400">
-            Cliquez sur un montant pour l'ajuster manuellement
-          </span>
+          {!isReadOnly && (
+            <span className="text-xs text-slate-400">
+              Cliquez sur un montant pour l'ajuster manuellement
+            </span>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -416,7 +422,9 @@ export const ForecastTab: React.FC<ForecastTabProps> = ({
                     </td>
                     <td className="py-2.5 px-3 text-slate-400 font-mono">{vals.realN.toLocaleString('fr-FR')} €</td>
                     <td className="py-2.5 px-3 font-mono font-bold text-white bg-slate-900/50">
-                      {isEditing ? (
+                      {isReadOnly ? (
+                        <span>{vals.neutVal.toLocaleString('fr-FR')} €</span>
+                      ) : isEditing ? (
                         <div className="flex items-center justify-end gap-1">
                           <input
                             type="number"
@@ -480,7 +488,9 @@ export const ForecastTab: React.FC<ForecastTabProps> = ({
                     </td>
                     <td className="py-2.5 px-3 text-slate-400 font-mono">{vals.realN.toLocaleString('fr-FR')} €</td>
                     <td className="py-2.5 px-3 font-mono font-bold text-white bg-slate-900/50">
-                      {isEditing ? (
+                      {isReadOnly ? (
+                        <span>{vals.neutVal.toLocaleString('fr-FR')} €</span>
+                      ) : isEditing ? (
                         <div className="flex items-center justify-end gap-1">
                           <input
                             type="number"

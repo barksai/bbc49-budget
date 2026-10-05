@@ -34,6 +34,7 @@ interface GeneralAssemblyTabProps {
   currentYear: FiscalYear;
   onUpdateFiscalYearNotes: (notes: string) => void;
   onExportPdf: () => void;
+  isReadOnly?: boolean;
 }
 
 export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
@@ -41,6 +42,7 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
   currentYear,
   onUpdateFiscalYearNotes,
   onExportPdf,
+  isReadOnly = false,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [notes, setNotes] = useState(currentYear.treasurerNotes || '');
@@ -184,13 +186,15 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4 text-amber-400" />}
             <span>{isFullscreen ? 'Quitter Plein Écran' : 'Mode Plein Écran Vidéo'}</span>
           </button>
-          <button
-            onClick={onExportPdf}
-            className="px-4 py-2 bg-[#C8102E] hover:bg-[#a50d26] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-red-950/40 transition-all"
-          >
-            <FileDown className="w-4 h-4" />
-            <span>Télécharger Rapport PDF</span>
-          </button>
+          {!isReadOnly && (
+            <button
+              onClick={onExportPdf}
+              className="px-4 py-2 bg-[#C8102E] hover:bg-[#a50d26] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-red-950/40 transition-all"
+            >
+              <FileDown className="w-4 h-4" />
+              <span>Télécharger Rapport PDF</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -398,21 +402,27 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
             <textarea
               rows={8}
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Rédigez ici vos commentaires officiels pour la présentation en Assemblée Générale..."
-              className="w-full mt-3 p-3.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white leading-relaxed focus:outline-none focus:border-[#C8102E]"
+              readOnly={isReadOnly}
+              disabled={isReadOnly}
+              onChange={(e) => !isReadOnly && setNotes(e.target.value)}
+              placeholder={isReadOnly ? "Aucun commentaire saisi pour cet exercice." : "Rédigez ici vos commentaires officiels pour la présentation en Assemblée Générale..."}
+              className={`w-full mt-3 p-3.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white leading-relaxed focus:outline-none focus:border-[#C8102E] ${
+                isReadOnly ? 'cursor-not-allowed opacity-80' : ''
+              }`}
             />
           </div>
 
-          <div className="flex justify-end pt-2">
-            <button
-              onClick={handleSaveNotes}
-              className="px-4 py-2 bg-[#C8102E] hover:bg-[#a50d26] text-white text-xs font-bold rounded-lg shadow-md flex items-center gap-1.5 transition-all"
-            >
-              <Save className="w-4 h-4" />
-              <span>Enregistrer le discours d'AG</span>
-            </button>
-          </div>
+          {!isReadOnly && (
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={handleSaveNotes}
+                className="px-4 py-2 bg-[#C8102E] hover:bg-[#a50d26] text-white text-xs font-bold rounded-lg shadow-md flex items-center gap-1.5 transition-all"
+              >
+                <Save className="w-4 h-4" />
+                <span>Enregistrer le discours d'AG</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

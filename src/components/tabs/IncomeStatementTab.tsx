@@ -17,6 +17,7 @@ interface IncomeStatementTabProps {
   currentYear: FiscalYear;
   onUpdateBudgetItems: (items: BudgetItem[]) => void;
   onOpenEditGlobalBudgetModal: () => void;
+  isReadOnly?: boolean;
 }
 
 export const IncomeStatementTab: React.FC<IncomeStatementTabProps> = ({
@@ -24,6 +25,7 @@ export const IncomeStatementTab: React.FC<IncomeStatementTabProps> = ({
   currentYear,
   onUpdateBudgetItems,
   onOpenEditGlobalBudgetModal,
+  isReadOnly = false,
 }) => {
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<number>(0);
@@ -179,14 +181,16 @@ export const IncomeStatementTab: React.FC<IncomeStatementTabProps> = ({
           <span className="px-3 py-1.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-lg border border-slate-700">
             {currentYear.label}
           </span>
-          <button
-            onClick={onOpenEditGlobalBudgetModal}
-            className="px-3.5 py-1.5 bg-[#C8102E] hover:bg-[#a50d26] text-white text-xs font-bold rounded-lg shadow-md flex items-center gap-1.5 transition-all"
-            title="Modifier les montants prévus du budget global"
-          >
-            <Scale className="w-4 h-4" />
-            <span>Modifier le Budget Global</span>
-          </button>
+          {!isReadOnly && (
+            <button
+              onClick={onOpenEditGlobalBudgetModal}
+              className="px-3.5 py-1.5 bg-[#C8102E] hover:bg-[#a50d26] text-white text-xs font-bold rounded-lg shadow-md flex items-center gap-1.5 transition-all"
+              title="Modifier les montants prévus du budget global"
+            >
+              <Scale className="w-4 h-4" />
+              <span>Modifier le Budget Global</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -272,7 +276,11 @@ export const IncomeStatementTab: React.FC<IncomeStatementTabProps> = ({
                       {prevAmount > 0 ? `${prevAmount.toLocaleString('fr-FR')} €` : '-'}
                     </td>
                     <td className="py-2.5 px-3 font-mono">
-                      {isEditing ? (
+                      {isReadOnly ? (
+                        <span className="text-slate-300">
+                          {planned.toLocaleString('fr-FR')} €
+                        </span>
+                      ) : isEditing ? (
                         <div className="flex items-center justify-end gap-1">
                           <input
                             type="number"
@@ -368,7 +376,11 @@ export const IncomeStatementTab: React.FC<IncomeStatementTabProps> = ({
                       {prevAmount > 0 ? `${prevAmount.toLocaleString('fr-FR')} €` : '-'}
                     </td>
                     <td className="py-2.5 px-3 font-mono">
-                      {isEditing ? (
+                      {isReadOnly ? (
+                        <span className="text-slate-300">
+                          {planned.toLocaleString('fr-FR')} €
+                        </span>
+                      ) : isEditing ? (
                         <div className="flex items-center justify-end gap-1">
                           <input
                             type="number"

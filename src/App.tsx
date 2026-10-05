@@ -13,6 +13,7 @@ import { BankStatementImportModal } from './components/modals/BankStatementImpor
 import { EditGlobalBudgetModal } from './components/modals/EditGlobalBudgetModal';
 import { StorageService, StorageStatus } from './services/storage';
 import { ExportService } from './services/exportService';
+import { auditService } from './services/auditService';
 import { AppData, FiscalYear, Transaction, BankAccount, BudgetItem, BankTransfer } from './types/budget';
 import { INITIAL_APP_DATA } from './data/defaultData';
 import { LoginPage } from './components/auth/LoginPage';
@@ -149,16 +150,19 @@ export const App: React.FC = () => {
   // Export PDF
   const handleExportPdf = () => {
     ExportService.exportToPdf(data, currentFiscalYear);
+    auditService.log('Export PDF (Rapport d’AG & Bilan)', 'export', currentFiscalYear.label);
   };
 
   // Export Excel
   const handleExportExcel = () => {
     ExportService.exportToExcel(data, currentFiscalYear);
+    auditService.log('Export Excel (Classeur complet)', 'export', currentFiscalYear.label);
   };
 
   // Export JSON (Backup direct)
   const handleExportJson = () => {
     StorageService.exportToJsonFile(data);
+    auditService.log('Export JSON (Sauvegarde intégrale)', 'export');
   };
 
   // Import JSON
@@ -171,6 +175,7 @@ export const App: React.FC = () => {
       const imported = await StorageService.importFromJsonFile(file);
       setData(imported);
       await StorageService.saveData(imported);
+      auditService.log('Restauration JSON de la base de données', 'sauvegarde');
       alert('Base de données restaurée avec succès !');
     } catch (err: any) {
       alert('Erreur lors de l’importation : ' + err.message);
@@ -373,6 +378,7 @@ export const App: React.FC = () => {
           isSaving={isSaving}
           saveSuccess={saveSuccess}
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          isReadOnly={isReadOnly}
         />
 
         {/* Dynamic Central Area */}
@@ -403,6 +409,7 @@ export const App: React.FC = () => {
                 currentYear={currentFiscalYear}
                 onUpdateTransactions={handleUpdateTransactions}
                 onSaveData={handleSaveData}
+                isReadOnly={isReadOnly}
               />
             )}
 
@@ -418,6 +425,7 @@ export const App: React.FC = () => {
                 onUpdateTransfers={handleUpdateTransfers}
                 onUpdateTransactions={handleUpdateTransactions}
                 onOpenBankStatementModal={() => setIsBankStatementModalOpen(true)}
+                isReadOnly={isReadOnly}
               />
             )}
 
@@ -427,6 +435,7 @@ export const App: React.FC = () => {
                 currentYear={currentFiscalYear}
                 onUpdateFiscalYearNotes={handleUpdateFiscalYearNotes}
                 onExportPdf={handleExportPdf}
+                isReadOnly={isReadOnly}
               />
             )}
 
@@ -436,6 +445,7 @@ export const App: React.FC = () => {
                 currentYear={currentFiscalYear}
                 onUpdateBudgetItems={handleUpdateBudgetItems}
                 onOpenEditGlobalBudgetModal={() => setIsEditGlobalBudgetModalOpen(true)}
+                isReadOnly={isReadOnly}
               />
             )}
 
@@ -446,6 +456,7 @@ export const App: React.FC = () => {
                 onUpdateBudgetItems={handleUpdateBudgetItems}
                 onUpdateScenarios={handleUpdateScenarios}
                 onOpenEditGlobalBudgetModal={() => setIsEditGlobalBudgetModalOpen(true)}
+                isReadOnly={isReadOnly}
               />
             )}
 

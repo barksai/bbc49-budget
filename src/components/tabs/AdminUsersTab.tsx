@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   UserPlus,
@@ -12,10 +12,21 @@ import {
   AlertCircle,
   X,
   Lock,
-  Clock
+  Clock,
+  RotateCcw,
+  Globe,
+  Activity,
+  FileDown,
+  Receipt,
+  Search,
+  Filter,
+  Save,
+  ArrowRightLeft
 } from 'lucide-react';
 import { User, UserRole } from '../../types/auth';
 import { authService } from '../../services/auth';
+import { AuditLog } from '../../types/audit';
+import { auditService } from '../../services/auditService';
 
 interface AdminUsersTabProps {
   currentUser: User;
@@ -37,6 +48,26 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({ currentUser }) => 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [resetPasswordValue, setResetPasswordValue] = useState('');
 
+  // Audit Trail State
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [filterUser, setFilterUser] = useState<string>('all');
+  const [filterIp, setFilterIp] = useState<string>('');
+  const [filterActionType, setFilterActionType] = useState<string>('all');
+  const [filterSearch, setFilterSearch] = useState<string>('');
+
+  const loadAuditLogs = async () => {
+    setIsLoadingLogs(true);
+    try {
+      const logs = await auditService.getAuditLogs();
+      setAuditLogs(logs);
+    } catch {
+      console.warn('Erreur chargement logs audit');
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
+
   const loadUsers = async () => {
     setIsLoading(true);
     try {
@@ -51,6 +82,7 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({ currentUser }) => 
 
   useEffect(() => {
     loadUsers();
+    loadAuditLogs();
   }, []);
 
   const showNotification = (type: 'success' | 'error', text: string) => {
@@ -144,6 +176,45 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({ currentUser }) => 
       showNotification('error', res.error || 'Erreur lors de la suppression.');
     }
   };
+
+  const filteredAuditLogs = useMemo(() => {
+    const cutoff = Date.now() - 28 * 24 * 60 * 60 * 1000;
+    return auditLogs.filter((log) => {
+      // Conservation 4 semaines (28 jours)
+      if (new Date(log.timestamp).getTime() < cutoff) return false;
+
+      // Filtre utilisateur
+      if (filterUser !== 'all' && log.username.toLowerCase() !== filterUser.toLowerCase()) {
+        return false;
+      }
+
+      // Filtre IP
+      if (filterIp.trim() && !log.ip.toLowerCase().includes(filterIp.trim().toLowerCase())) {
+        return false;
+      }
+
+      // Filtre type d'action
+      if (filterActionType !== 'all') {
+        if (filterActionType === 'login' && log.actionType !== 'login' && log.actionType !== 'logout') return false;
+        if (filterActionType === 'ecriture' && !log.actionType.startsWith('ecriture')) return false;
+        if (filterActionType === 'export' && !log.actionType.startsWith('export')) return false;
+        if (filterActionType === 'user' && !log.actionType.startsWith('user')) return false;
+        if (filterActionType === 'sauvegarde' && log.actionType !== 'sauvegarde') return false;
+      }
+
+      // Recherche libre
+      if (filterSearch.trim()) {
+        const s = filterSearch.toLowerCase();
+        const matchAction = log.action.toLowerCase().includes(s);
+        const matchUser = log.username.toLowerCase().includes(s);
+        const matchIp = log.ip.toLowerCase().includes(s);
+        const matchDetails = log.details?.toLowerCase().includes(s);
+        if (!matchAction && !matchUser && !matchIp && !matchDetails) return false;
+      }
+
+      return true;
+    });
+  }, [auditLogs, filterUser, filterIp, filterActionType, filterSearch]);
 
   const adminCount = users.filter((u) => u.role === 'admin').length;
   const editorCount = users.filter((u) => u.role === 'editor').length;
@@ -363,6 +434,229 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({ currentUser }) => 
         </div>
       </div>
 
+      {/* ========================================================================= */}
+      {/* TABLEAU JOURNAL D'AUDIT (AUDIT TRAIL) - 4 SEMAINES DE CONSERVATION */}
+      {/* ========================================================================= */}
+      <div className="bg-[#161821] border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-4">
+        {/* Header du tableau d'audit */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-950/60 border border-purple-800/50 flex items-center justify-center text-purple-400 shrink-0">
+              <Activity className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-extrabold text-white">
+                  Journal d'Audit & Sécurité (Audit Trail)
+                </h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800/40 font-mono">
+                  Conservation 4 semaines
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Traçabilité des actions : connexions, écritures, exports officiels, sauvegardes et gestion des utilisateurs.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={loadAuditLogs}
+              disabled={isLoadingLogs}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+              title="Rafraîchir les journaux d'audit"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${isLoadingLogs ? 'animate-spin' : ''}`} />
+              <span>Actualiser</span>
+            </button>
+            <span className="text-xs font-mono text-slate-400 bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-800">
+              {filteredAuditLogs.length} / {auditLogs.length} entrées
+            </span>
+          </div>
+        </div>
+
+        {/* FILTRES EN HAUT DES COLONNES */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 bg-slate-900/90 p-3 rounded-xl border border-slate-800">
+          {/* Filtre Utilisateur */}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+              Filtrer par Utilisateur
+            </label>
+            <select
+              value={filterUser}
+              onChange={(e) => setFilterUser(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-purple-500"
+            >
+              <option value="all">Tous les utilisateurs</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.username}>
+                  {u.name} (@{u.username})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtre IP */}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+              Filtrer par IP
+            </label>
+            <div className="relative">
+              <Globe className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+              <input
+                type="text"
+                placeholder="ex: 192.168.1..."
+                value={filterIp}
+                onChange={(e) => setFilterIp(e.target.value)}
+                className="w-full pl-8 pr-2.5 py-1.5 bg-slate-800 border border-slate-700 text-white text-xs rounded-lg focus:outline-none focus:border-purple-500 font-mono"
+              />
+            </div>
+          </div>
+
+          {/* Filtre Type d'action */}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+              Type d'Action
+            </label>
+            <select
+              value={filterActionType}
+              onChange={(e) => setFilterActionType(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-purple-500"
+            >
+              <option value="all">Toutes les actions</option>
+              <option value="login">Connexions & Sessions</option>
+              <option value="ecriture">Écritures comptables</option>
+              <option value="export">Exports (PDF, Excel, JSON)</option>
+              <option value="user">Gestion des utilisateurs</option>
+              <option value="sauvegarde">Sauvegardes de la base</option>
+            </select>
+          </div>
+
+          {/* Recherche mot-clé */}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+              Recherche libre
+            </label>
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+              <input
+                type="text"
+                placeholder="Rechercher action, détail..."
+                value={filterSearch}
+                onChange={(e) => setFilterSearch(e.target.value)}
+                className="w-full pl-8 pr-2.5 py-1.5 bg-slate-800 border border-slate-700 text-white text-xs rounded-lg focus:outline-none focus:border-purple-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* TABLEAU DES LOGS D'AUDIT */}
+        <div className="overflow-x-auto rounded-xl border border-slate-800">
+          <table className="w-full text-xs text-left">
+            <thead className="bg-slate-900/90 text-slate-300 font-bold border-b border-slate-800 uppercase text-[10px] tracking-wider">
+              <tr>
+                <th className="py-3 px-3.5">Utilisateur</th>
+                <th className="py-3 px-3.5">IP</th>
+                <th className="py-3 px-3.5">Action</th>
+                <th className="py-3 px-3.5 text-right">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/80 bg-[#12141c]">
+              {isLoadingLogs ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-slate-400">
+                    <div className="w-6 h-6 rounded-full border-2 border-purple-500 border-t-transparent animate-spin mx-auto mb-2" />
+                    Chargement des journaux d'audit...
+                  </td>
+                </tr>
+              ) : filteredAuditLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-slate-500">
+                    Aucun événement d'audit ne correspond aux critères de filtre.
+                  </td>
+                </tr>
+              ) : (
+                filteredAuditLogs.map((log) => {
+                  const date = new Date(log.timestamp);
+                  const formattedDate = date.toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  });
+                  const formattedTime = date.toLocaleTimeString('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  });
+
+                  return (
+                    <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
+                      {/* Utilisateur */}
+                      <td className="py-2.5 px-3.5 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-white text-[10px] font-bold">
+                            {log.username.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <span className="font-bold text-white block leading-tight">
+                              @{log.username}
+                            </span>
+                            <span className="text-[10px] text-slate-400 capitalize">
+                              {log.userRole}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* IP */}
+                      <td className="py-2.5 px-3.5 whitespace-nowrap font-mono text-[11px] text-slate-300">
+                        <span className="inline-flex items-center gap-1 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800">
+                          <Globe className="w-3 h-3 text-cyan-400" />
+                          {log.ip}
+                        </span>
+                      </td>
+
+                      {/* Action */}
+                      <td className="py-2.5 px-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase shrink-0 border ${
+                            log.actionType === 'login'
+                              ? 'bg-blue-950/60 text-blue-300 border-blue-800/50'
+                              : log.actionType.startsWith('user')
+                              ? 'bg-purple-950/60 text-purple-300 border-purple-800/50'
+                              : log.actionType.startsWith('export')
+                              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/50'
+                              : log.actionType === 'sauvegarde'
+                              ? 'bg-amber-950/60 text-amber-300 border-amber-800/50'
+                              : 'bg-slate-800 text-slate-300 border-slate-700'
+                          }`}>
+                            {log.actionType}
+                          </span>
+                          <span className="text-slate-200 font-medium">
+                            {log.action}
+                          </span>
+                          {log.details && (
+                            <span className="text-[10px] text-slate-400 italic">
+                              ({log.details})
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Timestamp */}
+                      <td className="py-2.5 px-3.5 text-right whitespace-nowrap font-mono text-slate-400 text-[11px]">
+                        <span className="text-slate-200 font-semibold">{formattedDate}</span> à {formattedTime}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* MODAL CRÉATION NOUVEL UTILISATEUR */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -411,7 +705,7 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({ currentUser }) => 
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Mot de passe provisoire *
+                  Mot de passe *
                 </label>
                 <input
                   type="password"

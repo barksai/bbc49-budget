@@ -17,12 +17,14 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { AppData, FiscalYear, Transaction, TransactionStatus, TransactionType } from '../../types/budget';
+import { auditService } from '../../services/auditService';
 
 interface TransactionsTabProps {
   data: AppData;
   currentYear: FiscalYear;
   onUpdateTransactions: (transactions: Transaction[]) => void;
   onSaveData: () => void;
+  isReadOnly?: boolean;
 }
 
 export const TransactionsTab: React.FC<TransactionsTabProps> = ({
@@ -30,6 +32,7 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
   currentYear,
   onUpdateTransactions,
   onSaveData,
+  isReadOnly = false,
 }) => {
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -120,6 +123,7 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
 
   // Duplicate Transaction
   const handleDuplicate = (t: Transaction) => {
+    if (isReadOnly) return;
     const newTx: Transaction = {
       ...t,
       id: `tx-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -129,19 +133,24 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
       reconciledDate: undefined,
     };
     onUpdateTransactions([newTx, ...data.transactions]);
+    auditService.log(`Duplication écriture: ${t.label}`, 'ecriture', `${t.amount} €`);
   };
 
   // Delete Transaction
   const handleDelete = (id: string) => {
+    if (isReadOnly) return;
+    const txToDelete = data.transactions.find((t) => t.id === id);
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette écriture ?')) {
       const updated = data.transactions.filter((t) => t.id !== id);
       onUpdateTransactions(updated);
+      auditService.log(`Suppression écriture: ${txToDelete?.label || id}`, 'ecriture');
     }
   };
 
   // Save Modal Form
   const handleSaveForm = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) return;
     if (!formData.label || !formData.amount || formData.amount <= 0) {
       alert('Veuillez renseigner un libellé valide et un montant positif.');
       return;
@@ -160,6 +169,7 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
           : t
       );
       onUpdateTransactions(updated);
+      auditService.log(`Modification écriture: ${formData.label}`, 'ecriture', `${formData.amount} €`);
     } else {
       // Create
       const newTx: Transaction = {
@@ -178,6 +188,7 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
         notes: formData.notes || '',
       };
       onUpdateTransactions([newTx, ...data.transactions]);
+      auditService.log(`Nouvelle écriture: ${newTx.label}`, 'ecriture', `${newTx.amount} € (${newTx.type})`);
     }
 
     setIsModalOpen(false);
@@ -185,6 +196,7 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
 
   // Toggle Reconciled in Table directly
   const handleToggleReconcile = (t: Transaction) => {
+    if (isReadOnly) return;
     const updated = data.transactions.map((item) => {
       if (item.id === t.id) {
         const nextState = !item.reconciled;
@@ -197,6 +209,7 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
       return item;
     });
     onUpdateTransactions(updated);
+    auditService.log(`${t.reconciled ? 'Dépointage' : 'Pointage'} écriture: ${t.label}`, 'ecriture');
   };
 
   // Handle CSV/Excel Import
@@ -263,12 +276,14 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
     }));
 
     onUpdateTransactions([...newItems, ...data.transactions]);
+    auditService.log(`Import de ${newItems.length} écritures (CSV/Excel)`, 'import', currentYear.label);
     setIsImportModalOpen(false);
     setImportedRows([]);
   };
 
   // Export filtered transactions to CSV
   const handleExportFilteredCsv = () => {
+    auditService.log(`Export CSV Écritures filtrées (${filteredTransactions.length} lignes)`, 'export', currentYear.label);
     const ws = XLSX.utils.json_to_sheet(
       filteredTransactions.map(t => {
         const acc = data.bankAccounts.find(a => a.id === t.accountId);
@@ -303,38 +318,40 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
             Enregistrement des recettes et dépenses, ventilation par pôle, pointage et rapprochement
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Import Button */}
-          <label className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm">
-            <Upload className="w-4 h-4 text-emerald-400" />
-            <span>Importer CSV/Excel</span>
-            <input
-              type="file"
-              accept=".csv, .xlsx, .xls"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-          </label>
+        {!isReadOnly && (
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Import Button */}
+            <label className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm">
+              <Upload className="w-4 h-4 text-emerald-400" />
+              <span>Importer CSV/Excel</span>
+              <input
+                type="file"
+                accept=".csv, .xlsx, .xls"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+            </label>
 
-          {/* Export Filtered CSV */}
-          <button
-            onClick={handleExportFilteredCsv}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
-            title="Exporter la liste actuellement filtrée"
-          >
-            <Download className="w-4 h-4 text-blue-400" />
-            <span>Exporter Sélection</span>
-          </button>
+            {/* Export Filtered CSV */}
+            <button
+              onClick={handleExportFilteredCsv}
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+              title="Exporter la liste actuellement filtrée"
+            >
+              <Download className="w-4 h-4 text-blue-400" />
+              <span>Exporter Sélection</span>
+            </button>
 
-          {/* Create Button */}
-          <button
-            onClick={handleOpenCreateModal}
-            className="px-4 py-2 bg-[#C8102E] hover:bg-[#a50d26] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-red-950/40 transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nouvelle Écriture</span>
-          </button>
-        </div>
+            {/* Create Button */}
+            <button
+              onClick={handleOpenCreateModal}
+              className="px-4 py-2 bg-[#C8102E] hover:bg-[#a50d26] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-red-950/40 transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nouvelle Écriture</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* FILTRES & BARRE DE RECHERCHE */}
@@ -457,13 +474,13 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
                 <th className="py-3 px-3.5">Compte</th>
                 <th className="py-3 px-3.5">Statut</th>
                 <th className="py-3 px-3.5 text-right">Montant</th>
-                <th className="py-3 px-3.5 text-center">Actions</th>
+                {!isReadOnly && <th className="py-3 px-3.5 text-center">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/80">
               {filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-500">
+                  <td colSpan={isReadOnly ? 7 : 8} className="py-12 text-center text-slate-500">
                     Aucune écriture ne correspond aux critères de recherche.
                   </td>
                 </tr>
@@ -480,13 +497,14 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
                       <td className="py-3 px-3.5">
                         <button
                           type="button"
-                          onClick={() => handleToggleReconcile(tx)}
+                          disabled={isReadOnly}
+                          onClick={() => !isReadOnly && handleToggleReconcile(tx)}
                           className={`w-5 h-5 rounded flex items-center justify-center transition-all ${
                             tx.reconciled
                               ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-900'
-                              : 'border border-slate-600 hover:border-slate-400 text-transparent'
-                          }`}
-                          title={tx.reconciled ? `Pointé le ${tx.reconciledDate || ''}` : 'Cliquer pour pointer'}
+                              : 'border border-slate-600 text-transparent'
+                          } ${isReadOnly ? 'cursor-default opacity-60' : 'hover:border-slate-400 cursor-pointer'}`}
+                          title={tx.reconciled ? `Pointé le ${tx.reconciledDate || ''}` : isReadOnly ? 'Non pointé' : 'Cliquer pour pointer'}
                         >
                           <Check className="w-3.5 h-3.5 stroke-[3]" />
                         </button>
@@ -563,31 +581,33 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center space-x-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleOpenEditModal(tx)}
-                            title="Modifier"
-                            className="p-1 hover:bg-slate-700 text-slate-300 rounded"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDuplicate(tx)}
-                            title="Dupliquer"
-                            className="p-1 hover:bg-slate-700 text-slate-300 rounded"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(tx.id)}
-                            title="Supprimer"
-                            className="p-1 hover:bg-red-950 text-red-400 rounded"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+                      {!isReadOnly && (
+                        <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center space-x-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleOpenEditModal(tx)}
+                              title="Modifier"
+                              className="p-1 hover:bg-slate-700 text-slate-300 rounded"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDuplicate(tx)}
+                              title="Dupliquer"
+                              className="p-1 hover:bg-slate-700 text-slate-300 rounded"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(tx.id)}
+                              title="Supprimer"
+                              className="p-1 hover:bg-red-950 text-red-400 rounded"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })

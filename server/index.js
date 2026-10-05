@@ -10,7 +10,9 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
 const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
 const DB_FILE = path.join(DATA_DIR, 'donnees_budget.json');
 const USERS_FILE = path.join(DATA_DIR, 'utilisateurs.json');
+const AUDIT_FILE = path.join(DATA_DIR, 'audit_trail.json');
 const AUTH_SECRET = process.env.AUTH_SECRET || 'bbc49_basket_club_secret_key_2026';
+const AUDIT_RETENTION_MS = 28 * 24 * 60 * 60 * 1000; // 4 semaines de conservation
 
 // Ensure directories exist
 function ensureDirs() {
@@ -159,6 +161,56 @@ function sanitizeUser(u) {
   };
 }
 
+// Extraction propre de l'IP cliente (compatible reverse proxy: Nginx, Traefik, Caddy...)
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const first = forwarded.split(',')[0].trim();
+    return first.replace(/^::ffff:/, '');
+  }
+  const raw = req.socket?.remoteAddress || req.ip || '127.0.0.1';
+  return raw.replace(/^::ffff:/, '');
+}
+
+// Lecture des logs d'audit (historique des 4 dernières semaines / 28 jours)
+function readAuditLogs() {
+  ensureDirs();
+  if (!fs.existsSync(AUDIT_FILE)) return [];
+  try {
+    const data = JSON.parse(fs.readFileSync(AUDIT_FILE, 'utf8'));
+    const logs = Array.isArray(data.logs) ? data.logs : [];
+    const cutoff = Date.now() - AUDIT_RETENTION_MS;
+    return logs.filter((l) => new Date(l.timestamp).getTime() >= cutoff);
+  } catch (e) {
+    console.error('[BBC49 Server] Erreur lecture audit_trail.json:', e.message);
+    return [];
+  }
+}
+
+// Enregistrement d'une action dans le journal d'audit
+function appendAuditLog(entry) {
+  try {
+    ensureDirs();
+    const logs = readAuditLogs();
+    const newLog = {
+      id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: new Date().toISOString(),
+      ...entry,
+    };
+    logs.unshift(newLog); // Plus récent en tête
+    const cutoff = Date.now() - AUDIT_RETENTION_MS;
+    const pruned = logs.filter((l) => new Date(l.timestamp).getTime() >= cutoff);
+    atomicWriteFile(
+      AUDIT_FILE,
+      JSON.stringify({ logs: pruned, lastUpdated: new Date().toISOString() }, null, 2)
+    );
+    return newLog;
+  } catch (e) {
+    console.warn('[BBC49 Server] Erreur écriture audit log:', e.message);
+    return null;
+  }
+}
+
 // Middleware: extract optional or required user
 function getAuthUser(req) {
   const authHeader = req.headers.authorization;
@@ -291,6 +343,15 @@ app.post('/api/auth/setup-admin', (req, res) => {
     saveUsers([adminUser]);
     console.log(`[BBC49 Server] Premier compte administrateur créé: ${adminUser.username}`);
 
+    appendAuditLog({
+      userId: adminUser.id,
+      username: adminUser.username,
+      userRole: adminUser.role,
+      ip: getClientIp(req),
+      action: `Initialisation du compte administrateur: ${adminUser.name} (@${adminUser.username})`,
+      actionType: 'user_creation',
+    });
+
     const token = generateToken(adminUser.id, adminUser.role);
     res.json({
       success: true,
@@ -314,11 +375,28 @@ app.post('/api/auth/login', (req, res) => {
     const user = users.find((u) => u.username.toLowerCase() === cleanUsername);
 
     if (!user || !verifyPassword(password, user.passwordHash)) {
+      appendAuditLog({
+        userId: user ? user.id : 'inconnu',
+        username: cleanUsername,
+        userRole: user ? user.role : 'inconnu',
+        ip: getClientIp(req),
+        action: `Tentative de connexion échouée pour "${cleanUsername}"`,
+        actionType: 'login',
+      });
       return res.status(401).json({ success: false, error: 'Identifiant ou mot de passe incorrect' });
     }
 
     user.lastLoginAt = new Date().toISOString();
     saveUsers(users);
+
+    appendAuditLog({
+      userId: user.id,
+      username: user.username,
+      userRole: user.role,
+      ip: getClientIp(req),
+      action: `Connexion réussie (${user.role === 'admin' ? 'Administrateur' : user.role === 'editor' ? 'Éditeur' : 'Lecture seule'})`,
+      actionType: 'login',
+    });
 
     const token = generateToken(user.id, user.role);
     res.json({
@@ -377,6 +455,15 @@ app.post('/api/users', requireAdmin, (req, res) => {
     users.push(newUser);
     saveUsers(users);
 
+    appendAuditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      userRole: req.user.role,
+      ip: getClientIp(req),
+      action: `Création du compte "${newUser.name}" (@${newUser.username}) [Rôle: ${newUser.role}]`,
+      actionType: 'user_creation',
+    });
+
     res.json({ success: true, user: sanitizeUser(newUser) });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -412,6 +499,16 @@ app.put('/api/users/:id', requireAdmin, (req, res) => {
     }
 
     saveUsers(users);
+
+    appendAuditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      userRole: req.user.role,
+      ip: getClientIp(req),
+      action: `Modification du compte "${user.username}"${role ? ` (Rôle: ${role})` : ''}${password ? ' [Mot de passe réinitialisé]' : ''}`,
+      actionType: 'user_modification',
+    });
+
     res.json({ success: true, user: sanitizeUser(user) });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -445,6 +542,16 @@ app.delete('/api/users/:id', requireAdmin, (req, res) => {
 
     const filtered = users.filter((u) => u.id !== id);
     saveUsers(filtered);
+
+    appendAuditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      userRole: req.user.role,
+      ip: getClientIp(req),
+      action: `Suppression du compte "${user.username}"`,
+      actionType: 'user_suppression',
+    });
+
     res.json({ success: true, message: 'Utilisateur supprimé avec succès' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -512,6 +619,15 @@ app.post('/api/data', (req, res) => {
     // Save atomically
     atomicWriteFile(DB_FILE, strData);
 
+    appendAuditLog({
+      userId: authUser ? authUser.id : 'system',
+      username: authUser ? authUser.username : 'Système',
+      userRole: authUser ? authUser.role : 'editor',
+      ip: getClientIp(req),
+      action: 'Sauvegarde de la base de données',
+      actionType: 'sauvegarde',
+    });
+
     console.log(`[BBC49 Server] Sauvegarde réussie (${strData.length} octets) à ${timestamp}`);
     return res.json({
       success: true,
@@ -519,7 +635,7 @@ app.post('/api/data', (req, res) => {
       path: DB_FILE
     });
   } catch (err) {
-    console.error('[BBC49 Server] Erreur sauvegarde données:', err);
+    console.error('[BBC49 Server] Erreur écriture données:', err);
     return res.status(500).json({
       success: false,
       error: err.message
@@ -527,7 +643,38 @@ app.post('/api/data', (req, res) => {
   }
 });
 
-// 9. Backups list
+// 9. Audit Trail Endpoints (Admin Only for read, Authenticated for logging)
+app.get('/api/audit-logs', requireAdmin, (req, res) => {
+  try {
+    const logs = readAuditLogs();
+    res.json({ success: true, logs });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/audit-logs', requireAuth, (req, res) => {
+  try {
+    const { action, actionType, details } = req.body;
+    if (!action) {
+      return res.status(400).json({ success: false, error: 'Action requise' });
+    }
+    const log = appendAuditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      userRole: req.user.role,
+      ip: getClientIp(req),
+      action: String(action),
+      actionType: actionType || 'autre',
+      details: details ? String(details) : undefined,
+    });
+    res.json({ success: true, log });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 10. Backups list
 app.get('/api/backups', (req, res) => {
   try {
     ensureDirs();

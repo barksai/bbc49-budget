@@ -10,7 +10,8 @@ import {
   Calendar,
   Wallet,
   Menu,
-  ChevronDown
+  ChevronDown,
+  Eye
 } from 'lucide-react';
 import { FiscalYear } from '../../types/budget';
 
@@ -29,6 +30,7 @@ interface HeaderProps {
   isSaving: boolean;
   saveSuccess: boolean;
   onToggleMobileMenu?: () => void;
+  isReadOnly?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -46,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
   isSaving,
   saveSuccess,
   onToggleMobileMenu,
+  isReadOnly = false,
 }) => {
   const [showFileMenu, setShowFileMenu] = useState(false);
 
@@ -86,127 +89,134 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Droite : Sauvegarder + Menu Actions/Exports */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Bouton Sauvegarder */}
-            <button
-              onClick={onSaveData}
-              disabled={isSaving}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border active:scale-95 ${
-                saveSuccess
-                  ? 'bg-emerald-950 border-emerald-500 text-emerald-300 shadow-sm shadow-emerald-950'
-                  : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
-              }`}
-              title="Enregistrer les modifications sur le serveur"
-            >
-              {saveSuccess ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse shrink-0" />
-              ) : (
-                <Save className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-              )}
-              <span>{saveSuccess ? 'OK !' : isSaving ? '...' : 'Sauver'}</span>
-            </button>
-
-            {/* Menu Actions / Exports Dropdown */}
-            <div className="relative">
+          {!isReadOnly ? (
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Bouton Sauvegarder */}
               <button
-                onClick={() => setShowFileMenu(!showFileMenu)}
-                className="flex items-center gap-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-200 text-xs font-semibold active:scale-95 transition-colors"
-                title="Actions, exports et fichiers"
+                onClick={onSaveData}
+                disabled={isSaving}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border active:scale-95 ${
+                  saveSuccess
+                    ? 'bg-emerald-950 border-emerald-500 text-emerald-300 shadow-sm shadow-emerald-950'
+                    : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
+                }`}
+                title="Enregistrer les modifications sur le serveur"
               >
-                <FileDown className="w-3.5 h-3.5 text-blue-400" />
-                <ChevronDown className="w-3 h-3 text-slate-400" />
+                {saveSuccess ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse shrink-0" />
+                ) : (
+                  <Save className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                )}
+                <span>{saveSuccess ? 'OK !' : isSaving ? '...' : 'Sauver'}</span>
               </button>
 
-              {/* Menu déroulant Mobile */}
-              {showFileMenu && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowFileMenu(false)}
-                  />
-                  <div
-                    className="absolute right-0 top-full mt-1.5 w-60 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-1.5 z-50 text-xs text-slate-200 divide-y divide-slate-800"
-                  >
-                    <div className="py-1">
-                      <div className="px-3 py-1 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                        Exports Officiels
-                      </div>
-                      <button
-                        onClick={() => {
-                          onExportPdf();
-                          setShowFileMenu(false);
-                        }}
-                        className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2.5 transition-colors"
-                      >
-                        <FileDown className="w-4 h-4 text-red-400 shrink-0" />
-                        <div>
-                          <div className="font-bold text-white">Exporter en PDF</div>
-                          <div className="text-[10px] text-slate-400">Rapport AG & Bilan A4</div>
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => {
-                          onExportExcel();
-                          setShowFileMenu(false);
-                        }}
-                        className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2.5 transition-colors"
-                      >
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <div>
-                          <div className="font-bold text-white">Exporter en Excel (.xlsx)</div>
-                          <div className="text-[10px] text-slate-400">Classeur multi-onglets</div>
-                        </div>
-                      </button>
-                    </div>
+              {/* Menu Actions / Exports Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowFileMenu(!showFileMenu)}
+                  className="flex items-center gap-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-200 text-xs font-semibold active:scale-95 transition-colors"
+                  title="Actions, exports et fichiers"
+                >
+                  <FileDown className="w-3.5 h-3.5 text-blue-400" />
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </button>
 
-                    <div className="py-1">
-                      <div className="px-3 py-1 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                        Sauvegarde & Données
-                      </div>
-                      <button
-                        onClick={() => {
-                          onExportJson();
-                          setShowFileMenu(false);
-                        }}
-                        className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2.5 transition-colors"
-                      >
-                        <HardDriveDownload className="w-4 h-4 text-blue-400 shrink-0" />
-                        <div>
-                          <div className="font-bold text-white">Sauvegarde JSON</div>
-                          <div className="text-[10px] text-slate-400">Télécharger copie intégrale</div>
+                {/* Menu déroulant Mobile */}
+                {showFileMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowFileMenu(false)}
+                    />
+                    <div
+                      className="absolute right-0 top-full mt-1.5 w-60 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-1.5 z-50 text-xs text-slate-200 divide-y divide-slate-800"
+                    >
+                      <div className="py-1">
+                        <div className="px-3 py-1 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                          Exports Officiels
                         </div>
-                      </button>
-                      <label className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer transition-colors">
-                        <Upload className="w-4 h-4 text-amber-400 shrink-0" />
-                        <div>
-                          <div className="font-bold text-white">Restaurer un fichier JSON</div>
-                          <div className="text-[10px] text-slate-400">Importer une sauvegarde</div>
-                        </div>
-                        <input
-                          type="file"
-                          accept=".json"
-                          className="hidden"
-                          onChange={(e) => {
-                            handleFileInput(e);
+                        <button
+                          onClick={() => {
+                            onExportPdf();
                             setShowFileMenu(false);
                           }}
-                        />
-                      </label>
-                    </div>
-
-                    {lastSavedAt && (
-                      <div className="px-3 py-1.5 text-[10px] text-slate-400 bg-slate-950/40">
-                        Dernier enregistrement serveur :<br />
-                        <span className="font-mono text-emerald-400 font-bold">
-                          {new Date(lastSavedAt).toLocaleTimeString('fr-FR')}
-                        </span>
+                          className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2.5 transition-colors"
+                        >
+                          <FileDown className="w-4 h-4 text-red-400 shrink-0" />
+                          <div>
+                            <div className="font-bold text-white">Exporter en PDF</div>
+                            <div className="text-[10px] text-slate-400">Rapport AG & Bilan A4</div>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            onExportExcel();
+                            setShowFileMenu(false);
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2.5 transition-colors"
+                        >
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <div>
+                            <div className="font-bold text-white">Exporter en Excel (.xlsx)</div>
+                            <div className="text-[10px] text-slate-400">Classeur multi-onglets</div>
+                          </div>
+                        </button>
                       </div>
-                    )}
-                  </div>
-                </>
-              )}
+
+                      <div className="py-1">
+                        <div className="px-3 py-1 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                          Sauvegarde & Données
+                        </div>
+                        <button
+                          onClick={() => {
+                            onExportJson();
+                            setShowFileMenu(false);
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2.5 transition-colors"
+                        >
+                          <HardDriveDownload className="w-4 h-4 text-blue-400 shrink-0" />
+                          <div>
+                            <div className="font-bold text-white">Sauvegarde JSON</div>
+                            <div className="text-[10px] text-slate-400">Télécharger copie intégrale</div>
+                          </div>
+                        </button>
+                        <label className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer transition-colors">
+                          <Upload className="w-4 h-4 text-amber-400 shrink-0" />
+                          <div>
+                            <div className="font-bold text-white">Restaurer un fichier JSON</div>
+                            <div className="text-[10px] text-slate-400">Importer une sauvegarde</div>
+                          </div>
+                          <input
+                            type="file"
+                            accept=".json"
+                            className="hidden"
+                            onChange={(e) => {
+                              handleFileInput(e);
+                              setShowFileMenu(false);
+                            }}
+                          />
+                        </label>
+                      </div>
+
+                      {lastSavedAt && (
+                        <div className="px-3 py-1.5 text-[10px] text-slate-400 bg-slate-950/40">
+                          Dernier enregistrement serveur :<br />
+                          <span className="font-mono text-emerald-400 font-bold">
+                            {new Date(lastSavedAt).toLocaleTimeString('fr-FR')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg text-xs font-semibold shrink-0">
+              <Eye className="w-3.5 h-3.5" />
+              <span>Lecture seule</span>
+            </div>
+          )}
         </div>
 
         {/* Rangée 2 Mobile : Sélecteur d'exercice & Bouton + Nouveau */}
@@ -227,14 +237,16 @@ export const Header: React.FC<HeaderProps> = ({
             </select>
           </div>
 
-          <button
-            onClick={onAddNewFiscalYear}
-            className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-emerald-400 border border-slate-800 rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0 transition-colors"
-            title="Créer un nouvel exercice budgétaire"
-          >
-            <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Nouveau</span>
-          </button>
+          {!isReadOnly && (
+            <button
+              onClick={onAddNewFiscalYear}
+              className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-emerald-400 border border-slate-800 rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0 transition-colors"
+              title="Créer un nouvel exercice budgétaire"
+            >
+              <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Nouveau</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -259,13 +271,15 @@ export const Header: React.FC<HeaderProps> = ({
                 </option>
               ))}
             </select>
-            <button
-              onClick={onAddNewFiscalYear}
-              title="Créer un nouvel exercice budgétaire"
-              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-emerald-400 transition-colors shrink-0"
-            >
-              <PlusCircle className="w-4 h-4 text-emerald-400" />
-            </button>
+            {!isReadOnly && (
+              <button
+                onClick={onAddNewFiscalYear}
+                title="Créer un nouvel exercice budgétaire"
+                className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-emerald-400 transition-colors shrink-0"
+              >
+                <PlusCircle className="w-4 h-4 text-emerald-400" />
+              </button>
+            )}
           </div>
 
           {/* Badge Trésorerie */}
@@ -279,7 +293,13 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Droite : Boutons d'action, Sauvegarde & Exports */}
-        <div className="flex items-center space-x-2 shrink-0">
+        {isReadOnly ? (
+          <div className="flex items-center space-x-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg text-xs font-semibold shrink-0">
+            <Eye className="w-4 h-4" />
+            <span>Mode Lecture Seule</span>
+          </div>
+        ) : (
+          <div className="flex items-center space-x-2 shrink-0">
           {/* Boutons directs Export PDF & Excel (sur grands écrans >= xl) */}
           <div className="hidden xl:flex items-center space-x-2">
             <button
@@ -428,6 +448,7 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
         </div>
+      )}
       </div>
     </header>
   );

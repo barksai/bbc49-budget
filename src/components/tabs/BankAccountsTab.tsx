@@ -16,6 +16,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { AppData, BankAccount, BankTransfer, FiscalYear, Transaction } from '../../types/budget';
+import { auditService } from '../../services/auditService';
 
 interface BankAccountsTabProps {
   data: AppData;
@@ -24,6 +25,7 @@ interface BankAccountsTabProps {
   onUpdateTransfers: (transfers: BankTransfer[]) => void;
   onUpdateTransactions: (transactions: Transaction[]) => void;
   onOpenBankStatementModal: () => void;
+  isReadOnly?: boolean;
 }
 
 export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
@@ -33,6 +35,7 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
   onUpdateTransfers,
   onUpdateTransactions,
   onOpenBankStatementModal,
+  isReadOnly = false,
 }) => {
   const [selectedAccountId, setSelectedAccountId] = useState<string>(data.bankAccounts[0]?.id || '');
   
@@ -106,14 +109,18 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
 
   // Update Initial Balance (valeur de départ du compte bancaire)
   const handleUpdateInitialBalance = (accId: string, newInitial: number) => {
+    if (isReadOnly) return;
+    const acc = data.bankAccounts.find((a) => a.id === accId);
     const updated = data.bankAccounts.map((a) =>
       a.id === accId ? { ...a, initialBalance: newInitial } : a
     );
     onUpdateBankAccounts(updated);
+    auditService.log(`Modification solde initial (${acc?.name || accId}) : ${newInitial} €`, 'ecriture');
   };
 
   // Update Statement Balance in inline input
   const handleUpdateStatementBalance = (accId: string, newBalance: number) => {
+    if (isReadOnly) return;
     const updated = data.bankAccounts.map((a) =>
       a.id === accId ? { ...a, currentStatementBalance: newBalance, lastStatementDate: new Date().toISOString().slice(0, 10) } : a
     );
@@ -122,6 +129,7 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
 
   // Toggle Reconciled for a transaction
   const handleToggleReconcile = (txId: string) => {
+    if (isReadOnly) return;
     const updated = data.transactions.map((t) => {
       if (t.id === txId) {
         const next = !t.reconciled;
@@ -138,8 +146,9 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
 
   // Point all pending for this account
   const handlePointAllPending = () => {
-    if (!activeAccount) return;
+    if (isReadOnly || !activeAccount) return;
     const today = new Date().toISOString().slice(0, 10);
+    const count = activeAccount.unpointedTx.length;
     const updated = data.transactions.map((t) => {
       if (t.accountId === activeAccount.id && !t.reconciled && t.status === 'realise') {
         return { ...t, reconciled: true, reconciledDate: today };
@@ -147,11 +156,13 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
       return t;
     });
     onUpdateTransactions(updated);
+    auditService.log(`Pointage groupé (${count} écritures) sur ${activeAccount.name}`, 'ecriture');
   };
 
   // Submit Internal Transfer
   const handleCreateTransfer = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) return;
     if (transferForm.fromAccountId === transferForm.toAccountId) {
       alert('Veuillez sélectionner deux comptes distincts pour le transfert.');
       return;
@@ -173,13 +184,17 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
     };
 
     onUpdateTransfers([newTransfer, ...data.transfers]);
+    auditService.log(`Nouveau virement interne: ${newTransfer.label}`, 'ecriture', `${newTransfer.amount} €`);
     setIsTransferModalOpen(false);
   };
 
   // Delete Transfer
   const handleDeleteTransfer = (trId: string) => {
+    if (isReadOnly) return;
+    const toDelete = data.transfers.find((t) => t.id === trId);
     if (window.confirm('Supprimer ce virement interne ?')) {
       onUpdateTransfers(data.transfers.filter((tr) => tr.id !== trId));
+      auditService.log(`Suppression virement interne: ${toDelete?.label || trId}`, 'ecriture');
     }
   };
 
@@ -286,31 +301,33 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
             Suivi des liquidités, gestion des virements internes et contrôle des écarts de trésorerie
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={onOpenBankStatementModal}
-            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-all active:scale-95"
-            title="Importer un relevé bancaire Excel (Crédit Agricole...) et catégoriser les opérations sur le compte de résultat"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Importer Relevé (.xlsx)</span>
-          </button>
-          <button
-            onClick={handleOpenTransferModal}
-            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
-          >
-            <ArrowRightLeft className="w-4 h-4 text-blue-400" />
-            <span>Virement</span>
-          </button>
-          <button
-            onClick={() => setIsManageAccountsModalOpen(true)}
-            className="px-3 py-2 bg-[#C8102E] hover:bg-[#a50d26] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-red-950/40 transition-all active:scale-95"
-            title="Gérer les comptes : ajouter ou supprimer des comptes bancaires et caisses"
-          >
-            <Landmark className="w-4 h-4" />
-            <span>Gestion Comptes</span>
-          </button>
-        </div>
+        {!isReadOnly && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={onOpenBankStatementModal}
+              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-all active:scale-95"
+              title="Importer un relevé bancaire Excel (Crédit Agricole...) et catégoriser les opérations sur le compte de résultat"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Importer Relevé (.xlsx)</span>
+            </button>
+            <button
+              onClick={handleOpenTransferModal}
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+            >
+              <ArrowRightLeft className="w-4 h-4 text-blue-400" />
+              <span>Virement</span>
+            </button>
+            <button
+              onClick={() => setIsManageAccountsModalOpen(true)}
+              className="px-3 py-2 bg-[#C8102E] hover:bg-[#a50d26] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-red-950/40 transition-all active:scale-95"
+              title="Gérer les comptes : ajouter ou supprimer des comptes bancaires et caisses"
+            >
+              <Landmark className="w-4 h-4" />
+              <span>Gestion Comptes</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* CARDS RÉCAPITULATIF DES COMPTES BANCAIRES */}
@@ -336,7 +353,7 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: acc.color || '#C8102E' }}
                   />
-                  {data.bankAccounts.length > 1 && (
+                  {!isReadOnly && data.bankAccounts.length > 1 && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -402,7 +419,7 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
                 <h3 className="text-base font-extrabold text-white">
                   Rapprochement Bancaire : {activeAccount.name}
                 </h3>
-                {data.bankAccounts.length > 1 && (
+                {!isReadOnly && data.bankAccounts.length > 1 && (
                   <button
                     type="button"
                     onClick={() => handleDeleteAccount(activeAccount.id)}
@@ -429,9 +446,13 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
                 <input
                   type="number"
                   step="0.01"
+                  readOnly={isReadOnly}
+                  disabled={isReadOnly}
                   value={activeAccount.initialBalance}
-                  onChange={(e) => handleUpdateInitialBalance(activeAccount.id, parseFloat(e.target.value) || 0)}
-                  className="w-28 sm:w-32 px-2.5 py-1 bg-slate-800 border border-amber-600/60 rounded-lg text-sm font-bold text-amber-300 font-mono focus:outline-none focus:border-amber-400"
+                  onChange={(e) => !isReadOnly && handleUpdateInitialBalance(activeAccount.id, parseFloat(e.target.value) || 0)}
+                  className={`w-28 sm:w-32 px-2.5 py-1 bg-slate-800 border border-amber-600/60 rounded-lg text-sm font-bold text-amber-300 font-mono focus:outline-none focus:border-amber-400 ${
+                    isReadOnly ? 'cursor-not-allowed opacity-80' : ''
+                  }`}
                   title="Modifier la valeur de départ (solde initial) de ce compte"
                 />
               </div>
@@ -444,9 +465,13 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
                 <input
                   type="number"
                   step="0.01"
+                  readOnly={isReadOnly}
+                  disabled={isReadOnly}
                   value={activeAccount.statementBalance}
-                  onChange={(e) => handleUpdateStatementBalance(activeAccount.id, parseFloat(e.target.value) || 0)}
-                  className="w-28 sm:w-32 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-sm font-bold text-white font-mono focus:outline-none focus:border-[#C8102E]"
+                  onChange={(e) => !isReadOnly && handleUpdateStatementBalance(activeAccount.id, parseFloat(e.target.value) || 0)}
+                  className={`w-28 sm:w-32 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-sm font-bold text-white font-mono focus:outline-none focus:border-[#C8102E] ${
+                    isReadOnly ? 'cursor-not-allowed opacity-80' : ''
+                  }`}
                   title="Solde constaté sur le dernier relevé bancaire"
                 />
               </div>
@@ -502,7 +527,7 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
                 <Clock className="w-4 h-4 text-amber-400" />
                 Écritures Non Pointées sur ce compte ({activeAccount.unpointedTx.length})
               </h4>
-              {activeAccount.unpointedTx.length > 0 && (
+              {!isReadOnly && activeAccount.unpointedTx.length > 0 && (
                 <button
                   onClick={handlePointAllPending}
                   className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-emerald-400 rounded-lg border border-slate-700 transition-colors"
@@ -534,9 +559,14 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
                       <tr key={tx.id} className="hover:bg-slate-800/40">
                         <td className="py-2 px-3">
                           <button
-                            onClick={() => handleToggleReconcile(tx.id)}
-                            className="p-1 rounded bg-slate-800 hover:bg-emerald-600 text-slate-400 hover:text-white transition-colors"
-                            title="Pointer cette écriture"
+                            disabled={isReadOnly}
+                            onClick={() => !isReadOnly && handleToggleReconcile(tx.id)}
+                            className={`p-1 rounded transition-colors ${
+                              isReadOnly
+                                ? 'bg-slate-800/40 text-slate-600 cursor-not-allowed'
+                                : 'bg-slate-800 hover:bg-emerald-600 text-slate-400 hover:text-white'
+                            }`}
+                            title={isReadOnly ? 'Mode lecture seule' : 'Pointer cette écriture'}
                           >
                             <Check className="w-3.5 h-3.5" />
                           </button>
@@ -583,7 +613,7 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
                   <th className="py-2.5 px-3">Compte Destinataire</th>
                   <th className="py-2.5 px-3">Libellé</th>
                   <th className="py-2.5 px-3 text-right">Montant</th>
-                  <th className="py-2.5 px-3 text-center">Action</th>
+                  {!isReadOnly && <th className="py-2.5 px-3 text-center">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
@@ -599,15 +629,17 @@ export const BankAccountsTab: React.FC<BankAccountsTabProps> = ({
                       <td className="py-2 px-3 text-right font-black text-white">
                         {tr.amount.toLocaleString('fr-FR')} €
                       </td>
-                      <td className="py-2 px-3 text-center">
-                        <button
-                          onClick={() => handleDeleteTransfer(tr.id)}
-                          className="p-1 hover:bg-red-950 text-red-400 rounded"
-                          title="Supprimer ce virement"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
+                      {!isReadOnly && (
+                        <td className="py-2 px-3 text-center">
+                          <button
+                            onClick={() => handleDeleteTransfer(tr.id)}
+                            className="p-1 hover:bg-red-950 text-red-400 rounded"
+                            title="Supprimer ce virement"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

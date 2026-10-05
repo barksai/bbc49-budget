@@ -116,21 +116,19 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
     const cat = data.categories.find((c) => c.id === t.categoryId);
     if (cat) {
       const cn = normalizeText(cat.name);
-      if (cn.includes('cotis') || cn.includes('licenc') || cn.includes('adher') || cn.includes('adhesion')) {
+      if (cn.includes('cotis') || cn.includes('licenc') || cn.includes('adher') || cn.includes('adhes')) {
         return true;
       }
     }
 
     // 2. Détection par libellé d'opération, commentaires ou référence
+    // Mots-clés stricts demandés : cotis (cotisation, cotisations), licenc (licence, licences, licencié), adher (adhésion, adhérent)
     const text = normalizeText(`${t.label || ''} ${t.notes || ''} ${t.invoiceRef || ''}`);
     return (
       text.includes('cotis') ||
       text.includes('licenc') ||
       text.includes('adher') ||
-      text.includes('adhesion') ||
-      text.includes('basket fit') ||
-      text.includes('basketfit') ||
-      text.includes('helloasso')
+      text.includes('adhes')
     );
   };
 
@@ -142,31 +140,32 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
       const cn = normalizeText(cat.name);
       if (
         cn.includes('subvention') ||
+        cn.includes('subv') ||
         cn.includes('mairie') ||
         cn.includes('collectiv') ||
-        cn.includes('ans ') ||
+        cn.includes('conseil dep') ||
         cn.includes('departement') ||
-        cn.includes('region')
+        cn.includes('region') ||
+        /\bans\b/.test(cn) ||
+        cn.includes('cnds')
       ) {
         return true;
       }
     }
 
     // 2. Détection par libellé d'opération, commentaires ou référence
+    // Mots-clés stricts demandés : subvention, subv, mairie, collectiv, conseil dep, departement, region, ans, cnds
     const text = normalizeText(`${t.label || ''} ${t.notes || ''} ${t.invoiceRef || ''}`);
     return (
       text.includes('subvention') ||
       text.includes('subv') ||
       text.includes('mairie') ||
       text.includes('collectiv') ||
-      text.includes('sgc') ||
       text.includes('conseil dep') ||
       text.includes('departement') ||
       text.includes('region') ||
-      text.includes('ans ') ||
-      text.includes('cnds') ||
-      text.includes('tresorerie municipale') ||
-      text.includes('tresor public')
+      /\bans\b/.test(text) ||
+      text.includes('cnds')
     );
   };
 
@@ -177,25 +176,27 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
     if (cat) {
       const cn = normalizeText(cat.name);
       if (
-        cn.includes('spons') ||
+        cn.includes('sponsor') ||
+        cn.includes('sponsoring') ||
         cn.includes('mecen') ||
         cn.includes('partenair') ||
-        cn.includes('don ') ||
-        cn.includes('dons')
+        cn.includes('donateur') ||
+        /\bdon(s)?\b/.test(cn)
       ) {
         return true;
       }
     }
 
     // 2. Détection par libellé d'opération, commentaires ou référence
+    // Mots-clés stricts demandés : sponsor, sponsoring, mecen (mécénat, mécène), partenair (partenaire, partenariat), don, donateur
     const text = normalizeText(`${t.label || ''} ${t.notes || ''} ${t.invoiceRef || ''}`);
     return (
-      text.includes('spons') ||
+      text.includes('sponsor') ||
+      text.includes('sponsoring') ||
       text.includes('mecen') ||
       text.includes('partenair') ||
       text.includes('donateur') ||
-      text.includes('donatrice') ||
-      text.includes('mecenat')
+      /\bdon(s)?\b/.test(text)
     );
   };
 

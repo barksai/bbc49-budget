@@ -82,14 +82,14 @@ export const BankStatementImportModal: React.FC<BankStatementImportModalProps> =
     const l = label.toLowerCase();
 
     if (type === 'recette') {
-      // Licences / Cotisations
-      if (l.includes('helloasso') || l.includes('cotisation') || l.includes('licence') || l.includes('basket fit') || l.includes('adhesion')) {
+      // Licences / Cotisations (cotis, licenc, adher/adhes)
+      if (l.includes('cotis') || l.includes('licenc') || l.includes('adher') || l.includes('adhes')) {
         const catLic = data.categories.find(c =>
           c.id === 'cat-rec-cotis' ||
           c.name.toLowerCase().includes('cotis') ||
           c.name.toLowerCase().includes('licenc') ||
           c.name.toLowerCase().includes('adher') ||
-          c.name.toLowerCase().includes('gestion courante')
+          c.name.toLowerCase().includes('adhes')
         );
         if (catLic) return catLic.id;
       }
@@ -98,21 +98,26 @@ export const BankStatementImportModal: React.FC<BankStatementImportModalProps> =
         const catVente = data.categories.find(c => c.name.toLowerCase().includes('marchandise') || c.name.toLowerCase().includes('bar'));
         if (catVente) return catVente.id;
       }
-      // Mairie / Subvention
-      if (l.includes('mairie') || l.includes('subvention') || l.includes('sgc') || l.includes('departement') || l.includes('region')) {
+      // Mairie / Subvention (subvention, subv, mairie, collectiv, conseil dep, departement, region, ans, cnds)
+      if (l.includes('subvention') || l.includes('subv') || l.includes('mairie') || l.includes('collectiv') || l.includes('conseil dep') || l.includes('departement') || l.includes('region') || /\bans\b/.test(l) || l.includes('cnds')) {
         const catSub = data.categories.find(c =>
           c.id === 'cat-rec-subv' ||
           c.name.toLowerCase().includes('subvention') ||
+          c.name.toLowerCase().includes('subv') ||
           c.name.toLowerCase().includes('mairie') ||
-          c.name.toLowerCase().includes('collectiv')
+          c.name.toLowerCase().includes('collectiv') ||
+          c.name.toLowerCase().includes('conseil dep') ||
+          c.name.toLowerCase().includes('departement') ||
+          c.name.toLowerCase().includes('region')
         );
         if (catSub) return catSub.id;
       }
-      // Sponsoring / Partenariats / Mécénat
-      if (l.includes('sponsor') || l.includes('mecenat') || l.includes('mécénat') || l.includes('partenaire') || l.includes('auto ecole') || l.includes('plombier') || l.includes('toubin')) {
+      // Sponsoring / Partenariats / Mécénat (sponsor, sponsoring, mecen, partenair, don, donateur)
+      if (l.includes('sponsor') || l.includes('sponsoring') || l.includes('mecen') || l.includes('partenair') || l.includes('donateur') || /\bdon(s)?\b/.test(l)) {
         const catSpon = data.categories.find(c =>
           c.id === 'cat-rec-spons' ||
           c.name.toLowerCase().includes('sponsor') ||
+          c.name.toLowerCase().includes('sponsoring') ||
           c.name.toLowerCase().includes('mecen') ||
           c.name.toLowerCase().includes('partenair')
         );

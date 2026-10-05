@@ -6,6 +6,7 @@ import {
   PieChart as PieIcon,
   Users,
   Award,
+  Handshake,
   FileDown,
   Save,
   CheckCircle,
@@ -118,6 +119,14 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
     return n.includes('cotis') || n.includes('licence') || n.includes('adhér') || n.includes('adhesion');
   };
 
+  const isSponsCategory = (catId: string) => {
+    if (catId === 'cat-rec-spons' || catId === 'cat-recette-produits-sponsorings') return true;
+    const cat = data.categories.find((c) => c.id === catId);
+    if (!cat) return false;
+    const n = cat.name.toLowerCase();
+    return n.includes('spons') || n.includes('mécén') || n.includes('mecen') || n.includes('partenair');
+  };
+
   const subvAmount = currentYearTx
     .filter((t) => t.type === 'recette' && t.status === 'realise' && isSubvCategory(t.categoryId))
     .reduce((s, t) => s + t.amount, 0);
@@ -126,8 +135,13 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
     .filter((t) => t.type === 'recette' && t.status === 'realise' && isCotisCategory(t.categoryId))
     .reduce((s, t) => s + t.amount, 0);
 
+  const sponsAmount = currentYearTx
+    .filter((t) => t.type === 'recette' && t.status === 'realise' && isSponsCategory(t.categoryId))
+    .reduce((s, t) => s + t.amount, 0);
+
   const subvDependencePct = totalRealRec > 0 ? (subvAmount / totalRealRec) * 100 : 0;
   const cotisCoveragePct = totalRealDep > 0 ? (cotisAmount / totalRealDep) * 100 : 0;
+  const sponsSharePct = totalRealRec > 0 ? (sponsAmount / totalRealRec) * 100 : 0;
 
   // Trésorerie disponible et mois de fonctionnement
   const totalCash = data.bankAccounts.reduce((s, acc) => {
@@ -254,8 +268,8 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
         </div>
       </div>
 
-      {/* 4 INDICATEURS PÉDAGOGIQUES NON-FINANCIERS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* 5 INDICATEURS PÉDAGOGIQUES NON-FINANCIERS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         {/* Résultat Net de la Saison */}
         <div className="p-5 rounded-2xl bg-[#171922] border border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div>
@@ -329,6 +343,25 @@ export const GeneralAssemblyTab: React.FC<GeneralAssemblyTabProps> = ({
           <div className="mt-3 text-[11px] text-slate-400 flex items-center gap-1.5">
             <Award className="w-3.5 h-3.5 text-amber-400" />
             <span>Mairie & Conseil Dépt : {subvAmount.toLocaleString('fr-FR')} €</span>
+          </div>
+        </div>
+
+        {/* Financement privé : Sponsors et Mécènes */}
+        <div className="p-5 rounded-2xl bg-[#171922] border border-slate-800 shadow-sm flex flex-col justify-between">
+          <div>
+            <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+              Part Sponsors & Mécénat
+            </span>
+            <div className="text-3xl font-black text-purple-400 mt-2">
+              {sponsSharePct.toFixed(1)}%
+            </div>
+            <p className="text-xs text-slate-300 mt-1 font-medium">
+              Partenaires privés dans les recettes
+            </p>
+          </div>
+          <div className="mt-3 text-[11px] text-slate-400 flex items-center gap-1.5">
+            <Handshake className="w-3.5 h-3.5 text-purple-400" />
+            <span>Sponsors & dons : {sponsAmount.toLocaleString('fr-FR')} €</span>
           </div>
         </div>
       </div>
